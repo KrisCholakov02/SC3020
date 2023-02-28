@@ -1,0 +1,19 @@
+The given code is an implementation of a storage component class that is used to allocate and deallocate memory blocks and records in a database. It contains methods to allocate a new block of memory, deallocate a block of memory, and allocate space for a record in a block.
+
+The class has the following member variables:
+
+maxStorageSize - the maximum storage size of the database in bytes.
+blkSize - the size of each memory block in bytes.
+usedSizeInBLk - the total amount of used space in blocks.
+usedSizeInRec - the total amount of used space in records.
+numAllocated - the number of blocks that have been allocated so far.
+sptr - a pointer to the start of the memory block.
+blk - a pointer to the current block.
+usedBlkSize - the amount of used space in the current block.
+numBlksAccessed - the number of blocks accessed.
+The class has the following member functions:
+
+StorageComponent(size_t maxStrSize, size_t blockSize) - constructor for the StorageComponent class that initializes the member variables and allocates space for the memory block.
+allocateBlock() - function to allocate a new block of memory. Returns true if successful, false otherwise.
+deallocateBlock(Address addr, size_t dSize) - function to deallocate a block of memory given its address and size. Returns true if successful, false otherwise.
+allocateRecordInBlock(size_t size) - function to allocate space for a record in a block. Returns the address where the new record should be stored.
