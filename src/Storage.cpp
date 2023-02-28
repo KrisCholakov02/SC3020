@@ -152,7 +152,29 @@ public:
             free(blockData);
         }
     }
-
+    
+    Record Storage::readRecord(int blockNum) 
+    {
+        Record r;
+        std::string recordData = "";
+    
+        // Read all the blocks associated with this record
+        while (isBlockInUse(blockNum)) {
+            char* blockData = readBlock(blockNum);
+            if (blockData != NULL) {
+                recordData += std::string(blockData, BLOCK_SIZE);
+                free(blockData);
+            }
+            blockNum++;
+        }
+    
+        // Deserialize the record
+        r = deserializeRecord(recordData);
+    
+        return r;
+    }
+    
+    
     void deallocateBlock(int blockNum) {
         if (blockNum < 0 || blockNum >= NUM_BLOCKS) {
             std::cout << "Error: block number out of range" << std::endl;
