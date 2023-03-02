@@ -1,7 +1,3 @@
-//
-// Created by Кристиян Каменов Чолаков on 2.03.23.
-//
-
 #ifndef SC3020_STORAGE_H
 #define SC3020_STORAGE_H
 
@@ -98,6 +94,5 @@ public:
     // Destructor for the Storage class
     ~Storage();
 };
-
 
 #endif //SC3020_STORAGE_H
