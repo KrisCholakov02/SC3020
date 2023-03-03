@@ -2,14 +2,12 @@
 #define SC3020_STORAGE_COMPONENTS_H
 
 #include <iostream>
-
+#include <cstring>
 using namespace std;
 
 // Class for the addresses in the storage
 class Address {
 private:
-    // The address of the block the record is located at
-    void *blockAddress;
     // The offset of the record in the block
     short int offset;
 public:
@@ -25,6 +23,9 @@ public:
     short getOffset() const {
         return offset;
     }
+
+// The address of the block the record is located at
+void *blockAddress;
 };
 
 class Record {

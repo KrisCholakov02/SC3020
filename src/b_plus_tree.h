@@ -32,7 +32,15 @@ public:
     void insert(Address recordAddress, float key);
 
     // A function to remove a record from the B+ Tree
-    void remove(float key);
+    int remove(float key);
+    // For a given head of linked list, deleting the entire linked list from the start to the end
+    void removeLinkedList(Address LLHeadAddress);
+    // Helper function for updating parent nodes while deleting a key so as to maintain
+    // Balanced B+ tree structure.
+    void updateInternal(float key, TreeNode *cursorDiskAddress, TreeNode *childDiskAddress);
+    // // Finds the direct parent of a node in the B+ Tree.
+    // // Takes in root and a node to find parent for, returns parent's disk address.
+    TreeNode *findParent(TreeNode *, TreeNode *, float lowerBoundKey);
 
     // A function to search for a record in the B+ Tree
     void searchRange(float start, float end);

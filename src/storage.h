@@ -2,6 +2,7 @@
 #define SC3020_STORAGE_H
 
 #include <iostream>
+#include <cstring>
 #include "storage_components.h"
 
 using namespace std;
