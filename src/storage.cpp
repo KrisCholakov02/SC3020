@@ -38,10 +38,24 @@ Address Storage::allocateRecord(size_t recordSize)
         cout << "The record recordSize is larger than the fixed block recordSize." << endl;
         throw invalid_argument("The record's recordSize should be less than the block's recordSize.");
     }
-    // If there are no blocks allocated or there is not enough space in the current block, try to allocate a new one
-    if (blocksAllocated == 0 || (currentBlockSize + recordSize > blockSize)) {
+    // If there are no blocks allocated, try to allocate a new one
+    if (blocksAllocated == 0) {
         // If a new block cannot be created because of storage not having enough space for it, throw an exception
         if (!allocateBlock()) throw logic_error("A new block cannot be created.");
+    }
+    // If there is not enough space in the current block,
+    // save the record in the current one and what is left in a newly created one.
+    // (Implementing spanned records)
+    if (currentBlockSize + recordSize > blockSize) {
+        // Setting the address of the record to the first block it is allocated to
+        Address newRecordAddress = Address(block, currentSize);
+        // Calculating the left size that has to be stored in the new block
+        int leftSize = currentBlockSize + recordSize - blockSize;
+        // Checking if a new block can be created
+        if (!allocateBlock()) throw logic_error("A new block cannot be created.");
+        currentBlockSize += leftSize;
+        currentSize += recordSize;
+        return newRecordAddress;
     }
     // If the current block has enough space for the record or a block is successfully created, allocate record to it
     Address newRecordAddress = Address(block, currentSize);
@@ -66,6 +80,17 @@ bool Storage::deallocateRecord(Address recordAddress, size_t recordSize) {
             // Decreasing the used storage size and the number of allocated blocks if the block is empty
             currentSize -= blockSize;
             blocksAllocated--;
+            // If the record spans over 2 blocks
+            if (recordAddress.getOffset() + recordSize > blockSize) {
+                // Getting the address of the second block
+                void *secondBlock = (char*) recordAddress.getBlockAddress() + blockSize;
+                // Checking if the second block is also empty
+                if (memcmp(emptyBlock, secondBlock, blockSize) == 0) {
+                    // If second one is also empty, decrease the used storage
+                    currentSize -= blockSize;
+                    blocksAllocated--;
+                }
+            }
         }
         // If current block is not empty, we just proceed without decreasing the storage used, as the block stays
         return true;
@@ -82,6 +107,8 @@ void *Storage::loadRecordFromStorage(Address recordAddress, size_t recordSize) {
     memcpy(address, (char *) recordAddress.getBlockAddress() + recordAddress.getOffset(), recordSize);
     // Increase the number of blocks that are accessed
     blocksAccessed++;
+    // Increasing the number of block that are accessed if the record spans to 2 blocks
+    if (recordAddress.getOffset() + recordSize > blockSize) blocksAccessed++;
     // Return the address with the record that was copied
     return address;
 }
@@ -92,6 +119,8 @@ Address Storage::saveRecordToStorage(void *record, size_t recordSize) {
     memcpy((char *)address.getBlockAddress() + address.getOffset(), record, recordSize);
     // Increase the number of blocks that are accessed
     blocksAccessed++;
+    // Increasing the number of block that are accessed if the record spans to 2 blocks
+    if (address.getOffset() + recordSize > blockSize) blocksAccessed++;
     // Return the address with the record that was copied
     return address;
 }
@@ -101,6 +130,8 @@ Address Storage::saveRecordToStorage(void *record, size_t recordSize, Address re
     memcpy((char *)recordAddress.getBlockAddress() + recordAddress.getOffset(), record, recordSize);
     // Increase the number of blocks that are accessed
     blocksAccessed++;
+    // Increasing the number of block that are accessed if the record spans to 2 blocks
+    if (recordAddress.getOffset() + recordSize > blockSize) blocksAccessed++;
     // Return the address with the record that was copied
     return recordAddress;
 }
