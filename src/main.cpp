@@ -52,7 +52,7 @@ int main() {
         string recordLine;
 
         while (getline(file, recordLine)) {
-            char t[10];
+            char t[11];
             float rating;
             int numVotes;
 
