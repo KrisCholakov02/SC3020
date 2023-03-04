@@ -46,7 +46,7 @@ public:
     TreeNode *findParent(TreeNode *, TreeNode *, float lowerBoundKey) {};
 
     // A function to search for a record in the B+ Tree
-    void searchRange(float start, float end);
+    void rangeSearch(float start, float end);
 
     // Getter for the root of the tree
     TreeNode *getRoot() const {

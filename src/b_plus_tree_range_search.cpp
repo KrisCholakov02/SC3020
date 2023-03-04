@@ -1,17 +1,13 @@
-//
-// Created by Public on 03/03/2023.
-//
 #include "b_plus_tree.h"
 #include "tree_node.h"
 #include "storage_components.h"
 
 #include <vector>
-#include <cstring>
 #include <iostream>
 
 using namespace std;
 
-void BPlusTree::searchRange(float start, float end) {
+void BPlusTree::rangeSearch(float start, float end) {
     if (rootAddress != nullptr) {
         Address addr = Address(rootAddress, 0);
         root = (TreeNode *) indexes->loadRecordFromStorage(addr, nodeSize);

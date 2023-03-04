@@ -134,4 +134,4 @@ Address Storage::saveRecordToStorage(void *record, size_t recordSize, Address re
     return recordAddress;
 }
 
-Storage::~Storage() {};
+Storage::~Storage() = default;;
