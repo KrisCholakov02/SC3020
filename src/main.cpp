@@ -41,7 +41,5 @@ int main() {
     printTitle(DISPLAY_SIZE, "Experiment 1");
 
 
-
-
     return 0;
 }
