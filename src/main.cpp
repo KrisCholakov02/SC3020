@@ -41,8 +41,8 @@ int main() {
     // Experiment 1:
 
     // Create storages for the records and the indexes
-    Storage indexes = Storage(150 * pow(2, 20), BLOCK_SIZE);
     Storage records = Storage(150 * pow(2, 20), BLOCK_SIZE);
+    Storage indexes = Storage(350 * pow(2, 20), BLOCK_SIZE);
 
     // Getting the file with the records
     ifstream file("../data/data.tsv");
