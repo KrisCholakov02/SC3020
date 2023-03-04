@@ -13,7 +13,7 @@ using namespace std;
 //Removing record
 int BPlusTree::remove(float key) {
     // set number of nodes the current tree contains before removing a key
-    numNodes = indexes->getAllocated();
+    numNodes = indexes->getBlocksAllocated();
 
     // if root address points to null, tree is empty.
     if (rootAddress == nullptr) {
@@ -124,8 +124,8 @@ int BPlusTree::remove(float key) {
 
             // Once the node is deleted, store the number of nodes deleted in the process
             // Update the current total number of nodes
-            int numNodesDeleted = numNodes - indexes->getAllocated();
-            numNodes = indexes->getAllocated();
+            int numNodesDeleted = numNodes - indexes->getBlocksAllocated();
+            numNodes = indexes->getBlocksAllocated();
             return numNodesDeleted;
         }
 
@@ -175,8 +175,8 @@ int BPlusTree::remove(float key) {
 
             // Once the node is deleted, store the number of nodes deleted in the process
             // Update the current total number of nodes
-            int numNodesDeleted = numNodes - indexes->getAllocated();
-            numNodes = indexes->getAllocated();
+            int numNodesDeleted = numNodes - indexes->getBlocksAllocated();
+            numNodes = indexes->getBlocksAllocated();
 
             // Save the changes and these updated record addressed to storage
             Address cursorAddress = {cursorStorageAddress, 0};
@@ -197,8 +197,8 @@ int BPlusTree::remove(float key) {
 
             // Once the node is deleted, store the number of nodes deleted in the process
             // Update the current total number of nodes
-            int numNodesDeleted = numNodes - indexes->getAllocated();
-            numNodes = indexes->getAllocated();
+            int numNodesDeleted = numNodes - indexes->getBlocksAllocated();
+            numNodes = indexes->getBlocksAllocated();
 
             // Save the changes and these updated record addressed to storage
             Address cursorAddress = {cursorStorageAddress, 0};
@@ -262,8 +262,8 @@ int BPlusTree::remove(float key) {
 
                 // Once the node is deleted, store the number of nodes deleted in the process
                 // Update the current total number of nodes
-                int numNodesDeleted = numNodes - indexes->getAllocated();
-                numNodes = indexes->getAllocated();
+                int numNodesDeleted = numNodes - indexes->getBlocksAllocated();
+                numNodes = indexes->getBlocksAllocated();
                 return numNodesDeleted;
             }
         }
@@ -320,8 +320,8 @@ int BPlusTree::remove(float key) {
 
                 // Once the node is deleted, store the number of nodes deleted in the process
                 // Update the current total number of nodes
-                int numNodesDeleted = numNodes - indexes->getAllocated();
-                numNodes = indexes->getAllocated();
+                int numNodesDeleted = numNodes - indexes->getBlocksAllocated();
+                numNodes = indexes->getBlocksAllocated();
                 return numNodesDeleted;
             }
         }
@@ -405,8 +405,8 @@ int BPlusTree::remove(float key) {
 
     // Once the node is deleted, store the number of nodes deleted in the process
     // Update the current total number of nodes
-    int numNodesDeleted = numNodes - indexes->getAllocated();
-    numNodes = indexes->getAllocated();
+    int numNodesDeleted = numNodes - indexes->getBlocksAllocated();
+    numNodes = indexes->getBlocksAllocated();
     return numNodesDeleted;
 }
 

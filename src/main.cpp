@@ -1,4 +1,8 @@
 #include <iostream>
+#include <cmath>
+#include <fstream>
+#include <sstream>
+#include "storage.h"
 
 using namespace std;
 
@@ -22,7 +26,6 @@ void printTitle(int displaySize, string text) {
 }
 
 int main() {
-
     //Constants:
 
     // Using this constant to set the length of the displayed lines in the terminal.
@@ -35,10 +38,53 @@ int main() {
     // A constant for the size of the storage part holding the indexes for the records - 350 MB.
     int const INDEXES_SIZE = 350;
 
-    //Experiment 1:
+    // Experiment 1:
 
+    // Create storages for the records and the indexes
+    Storage indexes = Storage(150 * pow(2, 20), BLOCK_SIZE);
+    Storage records = Storage(150 * pow(2, 20), BLOCK_SIZE);
+
+    // Getting the file with the records
+    ifstream file("../data/data.tsv");
+
+    int numRecords = 0;
+    if (file.is_open()) {
+        string recordLine;
+
+        while (getline(file, recordLine)) {
+            char t[10];
+            float rating;
+            int numVotes;
+
+            stringstream recordStream(recordLine);
+
+            strcpy(t, recordLine.substr(0, recordLine.find("\t")).c_str());
+            if (strcmp(t, "tconst") == 0) {
+                continue;
+            }
+            string data;
+            getline(recordStream, data, '\t');
+
+            //assigning temp.averageRating & temp.numVotes values
+            recordStream >> rating >> numVotes;
+
+            Record current = Record(t, rating, numVotes);
+            cout << t << " " << rating << " " << numVotes << "-->" << numRecords + 1 << endl;
+
+            Address currentRecordAddress = records.saveRecordToStorage(&current, sizeof(Record));
+            numRecords += 1;
+        }
+        file.close();
+    }
+
+    // Printing the results from Experiment 1
     printLine(DISPLAY_SIZE);
     printTitle(DISPLAY_SIZE, "Experiment 1");
+    printLine(DISPLAY_SIZE);
+    cout << "Number of records: " << numRecords << endl;
+    cout << "Size of a record: " << sizeof(Record) << " B" << endl;
+    cout << "(Max whole) Records per block: " << (int) BLOCK_SIZE / sizeof(Record) << endl;
+    cout << "Number of blocks: " << records.getBlocksAllocated() << endl;
 
 
     return 0;

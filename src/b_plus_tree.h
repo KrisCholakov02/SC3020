@@ -43,7 +43,7 @@ public:
 
     // // Finds the direct parent of a node in the B+ Tree.
     // // Takes in root and a node to find parent for, returns parent's disk address.
-    TreeNode *findParent(TreeNode *, TreeNode *, float lowerBoundKey);
+    TreeNode *findParent(TreeNode *, TreeNode *, float lowerBoundKey) {};
 
     // A function to search for a record in the B+ Tree
     void searchRange(float start, float end);

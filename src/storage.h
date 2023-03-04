@@ -79,7 +79,7 @@ public:
     }
 
     // Getter for the number of allocated blocks
-    int getAllocated() const {
+    int getBlocksAllocated() const {
         return blocksAllocated;
     }
 
