@@ -10,16 +10,15 @@ void printLine(int displaySize) {
     cout << endl;
 }
 
+// A function to print a text as a title for nicer displaying features
 void printTitle(int displaySize, string text) {
+    // Getting half of the remaining length of the display after the text and printing spaces to align
     int n = (displaySize - text.length()) / 2;
     for (int i = 0; i < n; i++) {
-        cout << "-";
+        cout << " ";
     }
-    cout << text;
-    for (int i = 0; i < displaySize - text.length() - n; i++) {
-        cout << "-";
-    }
-    cout << endl;
+    // Printing the text and ending the line
+    cout << text << endl;
 }
 
 int main() {
@@ -40,8 +39,6 @@ int main() {
 
     printLine(DISPLAY_SIZE);
     printTitle(DISPLAY_SIZE, "Experiment 1");
-
-
 
 
     return 0;

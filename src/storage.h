@@ -2,6 +2,7 @@
 #define SC3020_STORAGE_H
 
 #include <iostream>
+#include <cstring>
 #include "storage_components.h"
 
 using namespace std;
@@ -56,6 +57,7 @@ public:
     size_t getMaxSize() const {
         return maxSize;
     }
+
     // Getter for the fixed size of the blocks in the storage
     size_t getBlockSize() const {
         return blockSize;
