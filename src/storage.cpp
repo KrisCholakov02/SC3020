@@ -31,8 +31,7 @@ bool Storage::allocateBlock() {
     return true;
 }
 
-Address Storage::allocateRecord(size_t recordSize)
-{
+Address Storage::allocateRecord(size_t recordSize) {
     // If the record recordSize is larger than the fixed recordSize of the block, throw an exception
     if (recordSize > blockSize) {
         cout << "The record recordSize is larger than the fixed block recordSize." << endl;
@@ -53,7 +52,7 @@ Address Storage::allocateRecord(size_t recordSize)
 bool Storage::deallocateRecord(Address recordAddress, size_t recordSize) {
     try {
         // Deallocating the record from the block
-        void *toDelete = (char *)recordAddress.getBlockAddress() + recordAddress.getOffset();
+        void *toDelete = (char *) recordAddress.getBlockAddress() + recordAddress.getOffset();
         memset(toDelete, '\0', recordSize);
         // Decreasing the storage size with the size of the deleted record
         actualSize -= recordSize;
@@ -61,8 +60,7 @@ bool Storage::deallocateRecord(Address recordAddress, size_t recordSize) {
         unsigned char emptyBlock[blockSize];
         memset(emptyBlock, '\0', blockSize);
         // Comparing if the current block is empty
-        if (memcmp(emptyBlock, recordAddress.getBlockAddress(), blockSize) == 0)
-        {
+        if (memcmp(emptyBlock, recordAddress.getBlockAddress(), blockSize) == 0) {
             // Decreasing the used storage size and the number of allocated blocks if the block is empty
             currentSize -= blockSize;
             blocksAllocated--;
@@ -89,7 +87,7 @@ void *Storage::loadRecordFromStorage(Address recordAddress, size_t recordSize) {
 Address Storage::saveRecordToStorage(void *record, size_t recordSize) {
     // Creating the address for the record to be stored and copying it there
     Address address = allocateRecord(recordSize);
-    memcpy((char *)address.getBlockAddress() + address.getOffset(), record, recordSize);
+    memcpy((char *) address.getBlockAddress() + address.getOffset(), record, recordSize);
     // Increase the number of blocks that are accessed
     blocksAccessed++;
     // Return the address with the record that was copied
@@ -98,11 +96,11 @@ Address Storage::saveRecordToStorage(void *record, size_t recordSize) {
 
 Address Storage::saveRecordToStorage(void *record, size_t recordSize, Address recordAddress) {
     // Calculating the address for the record to be stored and copying it there
-    memcpy((char *)recordAddress.getBlockAddress() + recordAddress.getOffset(), record, recordSize);
+    memcpy((char *) recordAddress.getBlockAddress() + recordAddress.getOffset(), record, recordSize);
     // Increase the number of blocks that are accessed
     blocksAccessed++;
     // Return the address with the record that was copied
     return recordAddress;
 }
 
-Storage::~Storage(){};
+Storage::~Storage() {};

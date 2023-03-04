@@ -2,7 +2,6 @@
 // Created by anush on 04-03-2023.
 //
 
-#include "b_plus_tree_removeHelperFunctions.h"
 #include "b_plus_tree.h"
 #include "tree_node.h"
 

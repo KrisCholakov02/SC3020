@@ -34,11 +34,11 @@ public:
     }
 
 // The number of keys currently in the node
-int numKeys;
+    int numKeys;
 // The array of the keys in the node
-float *keys;
+    float *keys;
 // The array of the pointers in the node
-Address *pointers;
+    Address *pointers;
 };
 
 

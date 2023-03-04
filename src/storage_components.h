@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <cstring>
+
 using namespace std;
 
 // Class for the addresses in the storage
@@ -25,7 +26,7 @@ public:
     }
 
 // The address of the block the record is located at
-void *blockAddress;
+    void *blockAddress;
 };
 
 class Record {

@@ -57,6 +57,7 @@ public:
     size_t getMaxSize() const {
         return maxSize;
     }
+
     // Getter for the fixed size of the blocks in the storage
     size_t getBlockSize() const {
         return blockSize;
