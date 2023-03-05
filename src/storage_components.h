@@ -4,25 +4,19 @@
 #include <iostream>
 #include <cstring>
 
-using namespace std;
-
-// Class for the addresses in the storage
-struct Address {
-    // The address of the block the record is located at
+// Defines an address of a record stored as a block address with an offset.
+struct Address
+{
     void *blockAddress;
-    // The offset of the record in the block
     short int offset;
-
 };
 
-struct Record {
-    // The tconst field of the records
-    char t[10];
-    // The rating of the record's movie
-    float rating;
-    // The number of votes of the record's movie
-    int numVotes;
-
+// Defines a single movie record (read from data file).
+struct Record
+{
+    char tconst[11];     // ID of the movie.
+    float averageRating; // Average rating of this movie.
+    int numVotes;        // Number of votes of this movie.
 };
 
 #endif //SC3020_STORAGE_COMPONENTS_H

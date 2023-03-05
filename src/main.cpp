@@ -61,11 +61,11 @@ int main() {
     int const INDEXES_SIZE = 350;
 
     // Create storages for the records and the indexes
-    Storage records = Storage(RECORDS_SIZE * pow(2, 20), BLOCK_SIZE);
-    Storage indexes = Storage(INDEXES_SIZE * pow(2, 20), BLOCK_SIZE);
+    MemoryPool records = MemoryPool(RECORDS_SIZE * pow(2, 20), BLOCK_SIZE);
+    MemoryPool indexes = MemoryPool(INDEXES_SIZE * pow(2, 20), BLOCK_SIZE);
 
     // Creating the B+ Tree
-    BPlusTree tree = BPlusTree(&indexes, &records, BLOCK_SIZE);
+    BPlusTree tree = BPlusTree(BLOCK_SIZE, &records, &indexes);
 
     records.resetBlocksAccessed();
     indexes.resetBlocksAccessed();
@@ -83,34 +83,23 @@ int main() {
 
         // Get the lines of the data.tsv file
         while (getline(file, recordLine)) {
-            // The fields of every record
-            char t[11];
-            float rating;
-            int numVotes;
-
-            // Converting the record line to a string stream, so the fields can be assigned
-            stringstream recordStream(recordLine);
-
-            // Assigning the tconst field
-            strcpy(t, recordLine.substr(0, recordLine.find("\t")).c_str());
-            // A check for the first line of the data.tsv, get only records without the header
-            if (strcmp(t, "tconst") == 0) {
-                continue;
-            }
+            Record temp;
+            stringstream linestream(recordLine);
             string data;
-            getline(recordStream, data, '\t');
 
-            //assigning rating and numVotes fields
-            recordStream >> rating >> numVotes;
+            //assigning temp.tconst value
+            strcpy(temp.tconst, recordLine.substr(0, recordLine.find("\t")).c_str());
+            std::getline(linestream, data, '\t');
 
-            // Constructing the record
-            Record current{t,rating, numVotes};
+            //assigning temp.averageRating & temp.numVotes values
+            linestream >> temp.averageRating >> temp.numVotes;
+
 
             // Saving it to the storage and increasing the counter of saved records in the storage
-            Address currentRecordAddress = records.saveRecordToStorage(&current, sizeof(Record));
+            Address currentRecordAddress = records.saveToDisk(&temp, sizeof(Record));
 
             //
-            tree.insert(currentRecordAddress, int(current.getNumVotes()));
+            tree.insert(currentRecordAddress, int(temp.numVotes));
 
             numRecords += 1;
             displayProgress(numRecords, NUM_RECORDS);
@@ -126,20 +115,20 @@ int main() {
     cout << "Number of records: " << numRecords << endl;
     cout << "Size of a record: " << sizeof(Record) << " B" << endl;
     cout << "(Max whole) Records per block: " << (int) BLOCK_SIZE / sizeof(Record) << endl;
-    cout << "Number of blocks: " << records.getBlocksAllocated() << endl;
+    cout << "Number of blocks: " << records.getAllocated() << endl;
 
     // Experiment 2:
     printLine(DISPLAY_SIZE);
     printTitle(DISPLAY_SIZE, "Experiment 2");
     printLine(DISPLAY_SIZE);
-    cout << "Parameter n of the B+ tree: " << tree.getMaxNumKeys() << endl;
+    cout << "Parameter n of the B+ tree: " << tree.getMaxKeys() << endl;
     cout << "Number of nodes of the B+ tree: " << tree.getNumNodes() << endl;
-    cout << "Number of levels of the B+ tree: " << tree.getNumLevels() << endl;
+    cout << "Number of levels of the B+ tree: " << tree.getLevels() << endl;
     cout << "The keys in the root node: (";
-    for (int i = 0; i < tree.getMaxNumKeys(); i++) {
-        cout << tree.getRoot()->getKeys()[i] << ", ";
-    }
-    cout << ")" << endl;
+//    for (int i = 0; i < tree.getMaxKeys(); i++) {
+//        cout << tree.getRoot()->keys[i] << ", ";
+//    }
+//    cout << ")" << endl;
 
     indexes.resetBlocksAccessed();
     records.resetBlocksAccessed();
