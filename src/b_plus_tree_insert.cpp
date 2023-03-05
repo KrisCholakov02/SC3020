@@ -58,8 +58,7 @@ void BPlusTree::insert(Address recordAddress, int key) {
                 // Else if the key is larger than all the keys in the current node, get the last assigned pointer
                 if (i == current->numKeys - 1) {
                     // Load the new node from the storage
-                    TreeNode *nextNode = (TreeNode *) indexes->loadRecordFromStorage(current->pointers[i + 1],
-                                                                                     nodeSize);
+                    TreeNode *nextNode = (TreeNode *) indexes->loadRecordFromStorage(current->pointers[i + 1],nodeSize);
                     // Set the current node to be the newly found one
                     currentAddress = current->pointers[i + 1].blockAddress;
                     current = nextNode;
@@ -121,8 +120,8 @@ void BPlusTree::insert(Address recordAddress, int key) {
             // Save the current keys plus the new key to a temporary array
             int keysT[maxNumKeys + 1];
             // Save the current pointers plus the new one to a temporary array
-            Address *pointersT = (Address *) malloc(sizeof(Address) * (maxNumKeys + 1));
-            Address nextNode = current->pointers[current->numKeys];
+            Address pointersT[maxNumKeys + 1];
+            Address next = current->pointers[current->numKeys];
             // Copy the contents
             for (int i = 0; i < maxNumKeys; i++) {
                 keysT[i] = current->keys[i];
@@ -163,11 +162,11 @@ void BPlusTree::insert(Address recordAddress, int key) {
             newNode->leafNode = true;
 
             // The splitting into two nodes
-            current->numKeys = (maxNumKeys + 1) / 2;
-            newNode->numKeys = (maxNumKeys + 1) - ((maxNumKeys + 1) / 2);
+            current->numKeys = (int) ((maxNumKeys + 1) / 2);
+            newNode->numKeys = (int) ((maxNumKeys + 1) - ((maxNumKeys + 1) / 2));
 
             // Set the last pointer of the new leaf node to point to the previous last pointer before the insertion
-            newNode->pointers[newNode->numKeys] = nextNode;
+            newNode->pointers[newNode->numKeys] = next;
 
             // Add the keys and pointers to the previous node
             for (i = 0; i < current->numKeys; i++) {
@@ -249,7 +248,9 @@ void BPlusTree::insertInternal(int key, TreeNode *parentAddress, TreeNode *child
     if (parent->numKeys < maxNumKeys) {
         // Find the position where to put the child
         int i = 0;
-        while (key > parent->keys[i] && i < parent->numKeys) i++;
+        while (key > parent->keys[i] && i < parent->numKeys) {
+            i++;
+        }
 
         // Swap all keys to insert the child one
         for (int j = parent->numKeys; j > i; j--) {
@@ -263,10 +264,14 @@ void BPlusTree::insertInternal(int key, TreeNode *parentAddress, TreeNode *child
         // Add the child's key to the parent's correct position
         parent->keys[i] = key;
         parent->numKeys++;
+
+
         //Add the child's pointer to the parent
+        Address childAddressObject{childAddress, 0};
         parent->pointers[i + 1] = childAddressObject;
 
         // Update the parent's record in the storage
+        Address parentAddressObject{parentAddress, 0};
         indexes->saveRecordToStorage(parent, nodeSize, parentAddressObject);
     }
         // If parent node doesn't have space
@@ -276,7 +281,8 @@ void BPlusTree::insertInternal(int key, TreeNode *parentAddress, TreeNode *child
 
         // Again create temporary arrays for the keys and pointers, but now we have one more pointer to track the child
         int keysT[maxNumKeys + 1];
-        Address *pointersT = (Address *) malloc(sizeof(Address) * (maxNumKeys + 2));
+        Address pointersT[maxNumKeys + 2];
+
         // Copy the keys into the temporary array
         for (int i = 0; i < maxNumKeys; i++) {
             keysT[i] = parent->keys[i];
@@ -288,8 +294,9 @@ void BPlusTree::insertInternal(int key, TreeNode *parentAddress, TreeNode *child
 
         // Find the position of the inserted key
         int i = 0;
-        while (key > keysT[i] && i < maxNumKeys) i++;
-
+        while (key > keysT[i] && i < maxNumKeys) {
+            i++;
+        }
         // Swap all elements higher than the index
         int j;
         for (int j = maxNumKeys; j > i; j--) {
@@ -303,14 +310,14 @@ void BPlusTree::insertInternal(int key, TreeNode *parentAddress, TreeNode *child
             pointersT[j] = pointersT[j - 1];
         }
         // Insert the pointer at the correct position
+        Address childAddressObject{childAddress, 0};
         pointersT[i + 1] = childAddressObject;
-
         // The new node is a parent, so it cannot be a leaf node
         newNode->leafNode = false;
 
         // Splitting the two nodes
-        parent->numKeys = (maxNumKeys + 1) / 2;
-        newNode->numKeys = maxNumKeys - (maxNumKeys + 1) / 2;
+        parent->numKeys = (int) ((maxNumKeys + 1) / 2);
+        newNode->numKeys = (int) (maxNumKeys - (maxNumKeys + 1) / 2);
 
         // Putting the keys in the parent
         for (int i = 0; i < parent->numKeys; i++) {
@@ -339,6 +346,7 @@ void BPlusTree::insertInternal(int key, TreeNode *parentAddress, TreeNode *child
         parent->pointers[parent->numKeys] = childAddressObject;
 
         // Save the old parent and the new internal node to the storage
+        Address parentAddressObject{parentAddress, 0};
         indexes->saveRecordToStorage(parent, nodeSize, parentAddressObject);
         Address newNodeAddress = indexes->saveRecordToStorage(newNode, nodeSize);
 
@@ -348,6 +356,7 @@ void BPlusTree::insertInternal(int key, TreeNode *parentAddress, TreeNode *child
             newRoot->keys[0] = parent->keys[parent->numKeys];
 
             // Set the new root node's children to be the previous parent and the new internal node
+            Address parentAddressObject{parentAddress, 0};
             newRoot->pointers[0] = parentAddressObject;
             newRoot->pointers[1] = newNodeAddress;
 
@@ -364,7 +373,7 @@ void BPlusTree::insertInternal(int key, TreeNode *parentAddress, TreeNode *child
             // Else if the parent is not a root, thus we need to split again
         else {
             TreeNode *newParent = findParent((TreeNode *) rootAddress, parentAddress, parent->keys[0]);
-            insertInternal(keysT[parent->numKeys], newParent, (TreeNode *) newNodeAddress.blockAddress);
+            insertInternal(keysT[parent->numKeys], newParent, (TreeNode *)newNodeAddress.blockAddress);
         }
     }
 }

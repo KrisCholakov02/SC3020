@@ -95,7 +95,6 @@ int BPlusTree::getNumLevels() {
         current = (TreeNode *)indexes->loadRecordFromStorage(current->pointers[0], nodeSize);
         levels++;
     }
-    levels++;
 
     return levels;
 }

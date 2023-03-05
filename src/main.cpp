@@ -103,11 +103,9 @@ int main() {
 
             // Inserting the keys into the B+ tree
             tree.insert(currentRecordAddress, temporary.numVotes);
-            cout << numRecords <<  endl;
-            tree.display(tree.getRoot(), tree.getNumLevels());
 
             numRecords += 1;
-            //displayProgress(numRecords, NUM_RECORDS);
+            displayProgress(numRecords, NUM_RECORDS);
         }
         cout << endl;
         file.close();
@@ -142,6 +140,39 @@ int main() {
     records.resetBlocksAccessed();
 
     // Experiment 3:
+    tree.rangeSearch(500, 500);
+    printLine(DISPLAY_SIZE);
+    printTitle(DISPLAY_SIZE, "Experiment 3");
+    printLine(DISPLAY_SIZE);
+    cout << "Number of index nodes the process accesses: " << indexes.getBlocksAccessed() << endl;
+    cout << "Number of data blocks the process accesses: " << records.getBlocksAccessed() << endl;
+    cout << "Average of “averageRating’s” of the records that are returned: "; tree.rangeSearch(500, 500); cout << endl; // TODO
+    cout << "Running time of the retrieval process: "  << endl; // TODO
+    cout << "The number of data blocks that would be accessed by a brute-force linear scan method: " << tree.getNumNodes() << endl;
 
+    indexes.resetBlocksAccessed();
+    records.resetBlocksAccessed();
+    // Experiment 4:
+    tree.rangeSearch(30000, 40000);
+    printLine(DISPLAY_SIZE);
+    printTitle(DISPLAY_SIZE, "Experiment 4");
+    printLine(DISPLAY_SIZE);
+    cout << "Number of index nodes the process accesses: " << indexes.getBlocksAccessed() << endl;
+    cout << "Number of data blocks the process accesses: " << records.getBlocksAccessed() << endl;
+    cout << "Average of “averageRating’s” of the records that are returned: "; tree.rangeSearch(30000, 40000); cout << endl; // TODO
+    cout << "The number of data blocks that would be accessed by a brute-force linear scan method: " << tree.getNumNodes() << endl;
+
+    indexes.resetBlocksAccessed();
+    records.resetBlocksAccessed();
+    // Experiment 5
+    tree.remove(1000);
+    printLine(DISPLAY_SIZE);
+    printTitle(DISPLAY_SIZE, "Experiment 5");
+    printLine(DISPLAY_SIZE);
+    cout << "Number nodes of the updated B+ tree: " << tree.getNumNodes() << endl;
+    cout << "Number of levels of the updated B+ tree: " << tree.getNumLevels() << endl;
+    cout << "Content of the root node of the updated B+ tree(only the keys): "; tree.displayTreeNode(tree.getRoot()); cout << endl;
+    cout << "Running time of the process: " << endl; // TODO
+    cout << "The number of data blocks that would be accessed by a brute-force linear scan method: " << tree.getNumNodes() << endl;
     return 0;
 }
