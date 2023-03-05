@@ -26,3 +26,52 @@ BPlusTree::BPlusTree(Storage *indexes, Storage *records, size_t nodeSize) {
     this->records = records;
 }
 
+TreeNode *BPlusTree::findParent(TreeNode *currentAddress, TreeNode *childAddress, float key)
+{
+    // Load in the current node
+    Address currentAddressObject = Address(currentAddress, 0);
+    TreeNode *current = (TreeNode *)indexes->loadRecordFromStorage(currentAddressObject, nodeSize);
+
+    // If the current node is a leaf one, no child
+    if (current->leafNode) return nullptr;
+    // Otherwise, get parent address
+    TreeNode *parentAddress = currentAddress;
+
+    // While current is not leaf find continue the traversal
+    while (current->leafNode == false)
+    {
+        // Check all pointers for a match
+        for (int i = 0; i < current->numKeys + 1; i++)
+        {
+            if (current->pointers[i].blockAddress == childAddress) return parentAddress;
+        }
+
+        // Find the position within the node
+        for (int i = 0; i < current->numKeys; i++)
+        {
+            // If key is less than the current key, go to the left
+            if (key < current->keys[i])
+            {
+                // Load the next node
+                TreeNode *nextNode = (TreeNode *)indexes->loadRecordFromStorage(current->pointers[i], nodeSize);
+                // Update parent address
+                parentAddress = (TreeNode *)current->pointers[i].blockAddress;
+                // Make the next node a current one
+                current = (TreeNode *)nextNode;
+                break;
+            }
+            // If key larger than all keys in the node, go to node pointed by the last pointer
+            if (i == current->numKeys - 1)
+            {
+                // Load the next node
+                TreeNode *nextNode = (TreeNode *) indexes->loadRecordFromStorage(current->pointers[i + 1], nodeSize);
+                //  Update parent address
+                parentAddress = (TreeNode *)current->pointers[i + 1].blockAddress;
+                // Make the next node a current one
+                current = (TreeNode *) nextNode;
+                break;
+            }
+        }
+    }
+    return nullptr;
+}
