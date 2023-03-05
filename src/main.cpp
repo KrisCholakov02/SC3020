@@ -103,9 +103,12 @@ int main() {
 
             // Inserting the keys into the B+ tree
             tree.insert(currentRecordAddress, temporary.numVotes);
+            cout << numRecords <<  endl;
+            tree.display(tree.getRoot(), tree.getNumLevels());
 
             numRecords += 1;
-            displayProgress(numRecords, NUM_RECORDS);
+            if (numRecords == 50) break;
+            //displayProgress(numRecords, NUM_RECORDS);
         }
         cout << endl;
         file.close();
