@@ -30,7 +30,7 @@ void printTitle(int displaySize, string text) {
 // A function to show the current of the data loading dynamically in one line
 void displayProgress(int current, int total) {
     float percentage = static_cast<float>(current) / total * 100;
-    cout << "\r" << setw(3) << static_cast<int>(percentage) << "% [";
+    cout << "\r" << getw(reinterpret_cast<FILE *>(3)) << static_cast<int>(percentage) << "% [";
     int progressLength = static_cast<int>(percentage) / 2;
     for (int i = 0; i < 50; i++) {
         if (i < progressLength) {
@@ -67,6 +67,9 @@ int main() {
     // Creating the B+ Tree
     BPlusTree tree = BPlusTree(&indexes, &records, BLOCK_SIZE);
 
+    records.resetBlocksAccessed();
+    indexes.resetBlocksAccessed();
+
     // Getting the file with the records
     ifstream file("../data/data.tsv");
 
@@ -101,13 +104,13 @@ int main() {
             recordStream >> rating >> numVotes;
 
             // Constructing the record
-            Record current = Record(t, rating, numVotes);
+            Record current{t,rating, numVotes};
 
             // Saving it to the storage and increasing the counter of saved records in the storage
             Address currentRecordAddress = records.saveRecordToStorage(&current, sizeof(Record));
 
             //
-            tree.insert(currentRecordAddress, current.getNumVotes());
+            tree.insert(currentRecordAddress, int(current.getNumVotes()));
 
             numRecords += 1;
             displayProgress(numRecords, NUM_RECORDS);
@@ -117,7 +120,6 @@ int main() {
     }
 
     // Experiment 1:
-    // Printing the results from Experiment 1
     printLine(DISPLAY_SIZE);
     printTitle(DISPLAY_SIZE, "Experiment 1");
     printLine(DISPLAY_SIZE);
@@ -125,6 +127,33 @@ int main() {
     cout << "Size of a record: " << sizeof(Record) << " B" << endl;
     cout << "(Max whole) Records per block: " << (int) BLOCK_SIZE / sizeof(Record) << endl;
     cout << "Number of blocks: " << records.getBlocksAllocated() << endl;
+
+    // Experiment 2:
+    printLine(DISPLAY_SIZE);
+    printTitle(DISPLAY_SIZE, "Experiment 2");
+    printLine(DISPLAY_SIZE);
+    cout << "Parameter n of the B+ tree: " << tree.getMaxNumKeys() << endl;
+    cout << "Number of nodes of the B+ tree: " << tree.getNumNodes() << endl;
+    cout << "Number of levels of the B+ tree: " << tree.getNumLevels() << endl;
+    cout << "The keys in the root node: (";
+    for (int i = 0; i < tree.getMaxNumKeys(); i++) {
+        cout << tree.getRoot()->getKeys()[i] << ", ";
+    }
+    cout << ")" << endl;
+
+    indexes.resetBlocksAccessed();
+    records.resetBlocksAccessed();
+
+    // Experiment 3:
+    printLine(DISPLAY_SIZE);
+    printTitle(DISPLAY_SIZE, "Experiment 3");
+    printLine(DISPLAY_SIZE);
+    cout << "Number of index nodes the process accesses: " << indexes.getBlocksAccessed() << endl;
+    cout << "Number of data blocks the process accesses: " << records.getBlocksAccessed() << endl;
+    cout << endl;
+
+    indexes.resetBlocksAccessed();
+    records.resetBlocksAccessed();
 
     return 0;
 }

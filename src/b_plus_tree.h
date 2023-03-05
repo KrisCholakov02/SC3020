@@ -1,9 +1,10 @@
 #ifndef SC3020_B_PLUS_TREE_H
 #define SC3020_B_PLUS_TREE_H
 
-
 #include "storage.h"
 #include "tree_node.h"
+
+using namespace std;
 
 // A class for the B+ Tree structure
 class BPlusTree {

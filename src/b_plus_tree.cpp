@@ -6,8 +6,7 @@ BPlusTree::BPlusTree(Storage *indexes, Storage *records, size_t nodeSize) {
     // For n keys, we have n+1 pointers, so we subtract one Address too, then we try increasing the key number
     // with having that for every key there is an int (the actual key) and the address of the record
     maxNumKeys = 0;
-    while (((maxNumKeys + 1) * (sizeof(Address) + sizeof(int)) + sizeof(int) + sizeof(bool) + sizeof(Address)) <
-           nodeSize) {
+    while (((maxNumKeys + 1) * (sizeof(Address) + sizeof(int)) + sizeof(int) + sizeof(bool) + sizeof(Address)) <= nodeSize) {
         maxNumKeys += 1;
     }
     if (maxNumKeys == 0) {
@@ -29,7 +28,7 @@ BPlusTree::BPlusTree(Storage *indexes, Storage *records, size_t nodeSize) {
 TreeNode *BPlusTree::findParent(TreeNode *currentAddress, TreeNode *childAddress, int key)
 {
     // Load in the current node
-    Address currentAddressObject = Address(currentAddress, 0);
+    Address currentAddressObject{currentAddress, 0};
     TreeNode *current = (TreeNode *)indexes->loadRecordFromStorage(currentAddressObject, nodeSize);
 
     // If the current node is a leaf one, no child
@@ -83,7 +82,7 @@ int BPlusTree::getNumLevels() {
     }
 
     // Load in the root node the indexes storage
-    Address rootAddressObject = Address(rootAddress, 0);
+    Address rootAddressObject{rootAddress, 0};
     root = (TreeNode *)indexes->loadRecordFromStorage(rootAddressObject, nodeSize);
     // A current node variable to travers through the levels
     TreeNode *current = root;

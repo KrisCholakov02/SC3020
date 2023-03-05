@@ -1,6 +1,7 @@
 #include "tree_node.h"
 #include "storage_components.h"
 
+bool nullPtr = false;
 
 TreeNode::TreeNode(int maxNumKeys) {
     // Creating the keys' array
@@ -10,7 +11,7 @@ TreeNode::TreeNode(int maxNumKeys) {
 
     // Setting all pointers in the array to null pointers
     for (int i = 0; i < maxNumKeys + 1; i++) {
-        Address nullAddress = Address((void *) false, 0);
+        Address nullAddress = Address((void *) nullPtr, 0);
         pointers[i] = nullAddress;
     }
     // Setting the number of keys currently in the node to 0 as there are no keys upon creation
