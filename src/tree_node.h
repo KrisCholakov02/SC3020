@@ -9,6 +9,14 @@ class TreeNode {
 private:
     // Whether the node is a leaf node
     bool leafNode;
+    // The number of keys currently in the node
+    int numKeys;
+    // The array of the keys in the node
+    float *keys;
+    // The array of the pointers in the node
+    Address *pointers;
+    // Allowing BPlusTree access the attributes directly without setters and getters
+    friend class BPlusTree;
 public:
     // Constructor for the B+ tree node based on the maximum number of keys that a node can have
     TreeNode(int maxNumKeys);
@@ -32,13 +40,6 @@ public:
     int getNumKeys() const {
         return numKeys;
     }
-
-// The number of keys currently in the node
-    int numKeys;
-// The array of the keys in the node
-    float *keys;
-// The array of the pointers in the node
-    Address *pointers;
 };
 
 

@@ -8,6 +8,7 @@
 // A class for the B+ Tree structure
 class BPlusTree {
 private:
+    // Attributes
     // The storage space for the indexes of the records
     Storage *indexes;
     // The storage space for the records of the database
@@ -24,6 +25,16 @@ private:
     int numNodes;
     // The size of a node in the tree
     size_t nodeSize;
+
+    //Methods
+    // A method to update or create a parent node of both nodes
+    void insertInternal(float key, TreeNode *parentAddress, TreeNode *childAddress);
+
+    // Insert a record into a linked list of the records with the same key
+    Address insertLL(Address LLHead, Address recordAddress, float key);
+
+    // Remove the whole linked list
+    void removeLL(Address headAddress);
 public:
     // The constructor for the BPlusTree class
     BPlusTree(Storage *indexes, Storage *records, size_t nodeSize);
@@ -33,9 +44,6 @@ public:
 
     // A function to remove a record from the B+ Tree
     int remove(float key);
-
-    // For a given head of linked list, deleting the entire linked list from the start to the end
-    void removeLinkedList(Address LLHeadAddress);
 
     // Helper function for updating parent nodes while deleting a key so as to maintain
     // Balanced B+ tree structure.
