@@ -44,11 +44,11 @@ void BPlusTree::removeLinkedList(Address LinkedListHeadAddress)
 void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNode *childStorageAddress)
 {
     // Load in the latest copy of parent which is pointed to by cursor and child from disk storage
-    Address cursorAddress{cursorStorageAddress, 0};
+    Address cursorAddress = Address(cursorStorageAddress, 0);
     TreeNode *cursor = (TreeNode *)indexes->loadRecordFromStorage(cursorAddress, nodeSize);
 
     // Proceed to retrieve address of child node to be removed
-    Address childAddress{childStorageAddress, 0};
+    Address childAddress = Address(childStorageAddress, 0);
 
     // Start by checking is cursor storage address is same as root address
     if (cursorStorageAddress == rootAddress)
@@ -169,7 +169,7 @@ void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNo
     int rightSibling, leftSibling;
 
     // Load the parent node into main memory.
-    Address parentAddress{parentStorageAddress, 0};
+    Address parentAddress = Address(parentStorageAddress, 0);
     TreeNode *parent = (TreeNode *)indexes->loadRecordFromStorage(parentAddress, nodeSize);
 
     // Find left and right sibling of the current node by iterating through pointer positions.
@@ -232,14 +232,14 @@ void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNo
             leftNode->pointers[cursor->numKeys] = leftNode->pointers[cursor->numKeys + 1];
 
             // Save parent to disk storage
-            Address parentAddress{parentStorageAddress, 0};
+            Address parentAddress = Address(parentStorageAddress, 0);
             indexes->saveRecordToStorage(parent, nodeSize, parentAddress);
 
             // Save left sibling to disk storage
             indexes->saveRecordToStorage(leftNode, nodeSize, parent->pointers[leftSibling]);
 
             // Save current node to disk storage
-            Address cursorAddress = {cursorStorageAddress, 0};
+            Address cursorAddress = Address(cursorStorageAddress, 0);
             indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
             return;
         }
@@ -283,14 +283,14 @@ void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNo
             rightNode->numKeys--;
 
             // Save parent node to disk storage
-            Address parentAddress{parentStorageAddress, 0};
+            Address parentAddress = Address(parentStorageAddress, 0);
             indexes->saveRecordToStorage(parent, nodeSize, parentAddress);
 
             // Save right sibling node to disk storage.
             indexes->saveRecordToStorage(rightNode, nodeSize, parent->pointers[rightSibling]);
 
             // Save current node to disk storage.
-            Address cursorAddress = {cursorStorageAddress, 0};
+            Address cursorAddress = Address(cursorStorageAddress, 0);
             indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
             return;
         }
@@ -315,7 +315,7 @@ void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNo
             leftNode->keys[x] = cursor->keys[j];
         }
         // Transfer all pointers also
-        Address nullAddress{nullptr, 0};
+        Address nullAddress = Address(nullptr, 0);
         for (int x= leftNode->numKeys + 1, j = 0; j < cursor->numKeys + 1; j++)
         {
             leftNode->pointers[x] = cursor->pointers[j];
@@ -354,7 +354,7 @@ void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNo
 
         // Transfer all pointers from right node into current.
         //Separately cause we have an extra ptr in  non leaf nodes
-        Address nullAddress = {nullptr, 0};
+        Address nullAddress = Address(nullptr, 0);
         for (int x= cursor->numKeys + 1, j = 0; j < rightNode->numKeys + 1; j++)
         {
             cursor->pointers[x] = rightNode->pointers[j];
@@ -367,7 +367,7 @@ void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNo
         rightNode->numKeys = 0;
 
         // Save current node to disk storage
-        Address cursorAddress{cursorStorageAddress, 0};
+        Address cursorAddress= Address(cursorStorageAddress, 0);
         indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
 
         // Proceed to remove right node.

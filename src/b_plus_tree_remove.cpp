@@ -20,7 +20,7 @@ int BPlusTree::remove(float key) {
         throw std::logic_error("B+ tree is empty!");
     } else {
         // if the tree is not empty,find in address of root node from the disk with 0 offset.
-        Address rootStorageAddress{rootAddress, 0};
+        Address rootStorageAddress = Address(rootAddress, 0);
         root = (TreeNode *) indexes->loadRecordFromStorage(rootStorageAddress, nodeSize);
 
         TreeNode *cursor = root;
@@ -148,7 +148,7 @@ int BPlusTree::remove(float key) {
 
         // Set all remaining pointers from the filled number of key pointers to nullptr
         for (int x = cursor->numKeys + 1; x < maxNumKeys + 1; x++) {
-            Address nullAddress{nullptr, 0};
+            Address nullAddress = Address(nullptr, 0);
             cursor->pointers[x] = nullAddress;
         }
 
@@ -160,7 +160,7 @@ int BPlusTree::remove(float key) {
                 std::cout << "Congratulations! Successfully deleted the entire indices!" << endl;
 
                 // Proceed to deallocate the block in disk storage used to store root node.
-                Address rootStorageAddress{rootAddress, 0};
+                Address rootStorageAddress = Address(rootAddress, 0);
                 indexes->deallocateRecord(rootStorageAddress, nodeSize);
 
                 // Reset root pointers in the B+ Tree.
@@ -179,7 +179,7 @@ int BPlusTree::remove(float key) {
             numNodes = indexes->getBlocksAllocated();
 
             // Save the changes and these updated record addressed to storage
-            Address cursorAddress = {cursorStorageAddress, 0};
+            Address cursorAddress = Address(cursorStorageAddress, 0);
             indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
 
             return numNodesDeleted;
@@ -201,7 +201,7 @@ int BPlusTree::remove(float key) {
             numNodes = indexes->getBlocksAllocated();
 
             // Save the changes and these updated record addressed to storage
-            Address cursorAddress = {cursorStorageAddress, 0};
+            Address cursorAddress = Address(cursorStorageAddress, 0);
             indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
 
             return numNodesDeleted;
@@ -250,14 +250,14 @@ int BPlusTree::remove(float key) {
                 // Update keys of parent node of left sibling accordingly
                 parentNode->keys[leftSibling] = cursor->keys[0];
                 // Save this parent node to disk storage
-                Address parentAddress{parentStorageAddress, 0};
+                Address parentAddress = Address(parentStorageAddress, 0);
                 indexes->saveRecordToStorage(parentNode, nodeSize, parentAddress);
 
                 // Save this left sibling node to disk storage
                 indexes->saveRecordToStorage(leftSiblingNode, nodeSize, parentNode->pointers[leftSibling]);
 
                 // Save the current node to disk storage
-                Address cursorAddress = {cursorStorageAddress, 0};
+                Address cursorAddress = Address(cursorStorageAddress, 0);
                 indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
 
                 // Once the node is deleted, store the number of nodes deleted in the process
@@ -309,13 +309,13 @@ int BPlusTree::remove(float key) {
                 parentNode->keys[rightSibling - 1] = rightNode->keys[0];
 
                 // Save address of parent node and node itself to disk storage.
-                Address parentAddress{parentStorageAddress, 0};
+                Address parentAddress = Address(parentStorageAddress, 0);
                 indexes->saveRecordToStorage(parentNode, nodeSize, parentAddress);
                 // Save node right sibling to disk storage.
                 indexes->saveRecordToStorage(rightNode, nodeSize, parentNode->pointers[rightSibling]);
 
                 // Save current node to disk storage
-                Address cursorAddress = {cursorStorageAddress, 0};
+                Address cursorAddress = Address(cursorStorageAddress, 0);
                 indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
 
                 // Once the node is deleted, store the number of nodes deleted in the process
@@ -363,7 +363,7 @@ int BPlusTree::remove(float key) {
                            (TreeNode *) cursorStorageAddress);
 
             // After updating parent nodes, just delete the current node from disk by deallocating.
-            Address cursorAddress{cursorStorageAddress, 0};
+            Address cursorAddress = Address(cursorStorageAddress, 0);
             indexes->deallocateRecord(cursorAddress, nodeSize);
         }
 
@@ -389,7 +389,7 @@ int BPlusTree::remove(float key) {
 
 
             // Save current node being pointed into disk storage.
-            Address cursorAddress{cursorStorageAddress, 0};
+            Address cursorAddress = Address(cursorStorageAddress, 0);
             indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
 
             // Update all parent/internal nodes until structure of tree balanced to fully remove the right node.
@@ -398,7 +398,7 @@ int BPlusTree::remove(float key) {
                            (TreeNode *) rightNodeAddress);
 
             // After updating parent nodes, just delete the right sibling node from disk by deallocating.
-            Address rightNodeDiskAddress{rightNodeAddress, 0};
+            Address rightNodeDiskAddress = Address(rightNodeAddress, 0);
             indexes->deallocateRecord(rightNodeDiskAddress, nodeSize);
         }
     }
