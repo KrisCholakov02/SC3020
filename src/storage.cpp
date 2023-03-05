@@ -42,12 +42,13 @@ Address Storage::allocateRecord(size_t recordSize) {
         // If a new block cannot be created because of storage not having enough space for it, throw an exception
         if (!allocateBlock()) throw logic_error("A new block cannot be created.");
     }
+    short int offset = currentBlockSize;
     // If there is not enough space in the current block,
     // save the record in the current one and what is left in a newly created one.
     // (Implementing spanned records)
     if (currentBlockSize + recordSize > blockSize) {
         // Setting the address of the record to the first block it is allocated to
-        Address newRecordAddress = Address(block, currentSize);
+        Address newRecordAddress{block, offset};
         // Calculating the left size that has to be stored in the new block
         int leftSize = currentBlockSize + recordSize - blockSize;
         // Checking if a new block can be created
@@ -57,7 +58,7 @@ Address Storage::allocateRecord(size_t recordSize) {
         return newRecordAddress;
     }
     // If the current block has enough space for the record or a block is successfully created, allocate record to it
-    Address newRecordAddress = Address(block, currentSize);
+    Address newRecordAddress{block, offset};
     currentBlockSize += recordSize;
     currentSize += recordSize;
     return newRecordAddress;
@@ -66,7 +67,7 @@ Address Storage::allocateRecord(size_t recordSize) {
 bool Storage::deallocateRecord(Address recordAddress, size_t recordSize) {
     try {
         // Deallocating the record from the block
-        void *toDelete = (char *) recordAddress.getBlockAddress() + recordAddress.getOffset();
+        void *toDelete = (char *) recordAddress.blockAddress + recordAddress.offset;
         memset(toDelete, '\0', recordSize);
         // Decreasing the storage size with the size of the deleted record
         actualSize -= recordSize;
@@ -74,14 +75,14 @@ bool Storage::deallocateRecord(Address recordAddress, size_t recordSize) {
         unsigned char emptyBlock[blockSize];
         memset(emptyBlock, '\0', blockSize);
         // Comparing if the current block is empty
-        if (memcmp(emptyBlock, recordAddress.getBlockAddress(), blockSize) == 0) {
+        if (memcmp(emptyBlock, recordAddress.blockAddress, blockSize) == 0) {
             // Decreasing the used storage size and the number of allocated blocks if the block is empty
             currentSize -= blockSize;
             blocksAllocated--;
             // If the record spans over 2 blocks
-            if (recordAddress.getOffset() + recordSize > blockSize) {
+            if (recordAddress.offset + recordSize > blockSize) {
                 // Getting the address of the second block
-                void *secondBlock = (char*) recordAddress.getBlockAddress() + blockSize;
+                void *secondBlock = (char*) recordAddress.blockAddress + blockSize;
                 // Checking if the second block is also empty
                 if (memcmp(emptyBlock, secondBlock, blockSize) == 0) {
                     // If second one is also empty, decrease the used storage
@@ -102,11 +103,11 @@ bool Storage::deallocateRecord(Address recordAddress, size_t recordSize) {
 void *Storage::loadRecordFromStorage(Address recordAddress, size_t recordSize) {
     // Get a record from a block based on the block's address, offset and the record's size
     void *address = operator new(recordSize);
-    memcpy(address, (char *) recordAddress.getBlockAddress() + recordAddress.getOffset(), recordSize);
+    memcpy(address, (char *) recordAddress.blockAddress + recordAddress.offset, recordSize);
     // Increase the number of blocks that are accessed
     blocksAccessed++;
     // Increasing the number of block that are accessed if the record spans to 2 blocks
-    if (recordAddress.getOffset() + recordSize > blockSize) blocksAccessed++;
+    if (recordAddress.offset + recordSize > blockSize) blocksAccessed++;
     // Return the address with the record that was copied
     return address;
 }
@@ -114,22 +115,22 @@ void *Storage::loadRecordFromStorage(Address recordAddress, size_t recordSize) {
 Address Storage::saveRecordToStorage(void *record, size_t recordSize) {
     // Creating the address for the record to be stored and copying it there
     Address address = allocateRecord(recordSize);
-    memcpy((char *) address.getBlockAddress() + address.getOffset(), record, recordSize);
+    memcpy((char *) address.blockAddress + address.offset, record, recordSize);
     // Increase the number of blocks that are accessed
     blocksAccessed++;
     // Increasing the number of block that are accessed if the record spans to 2 blocks
-    if (address.getOffset() + recordSize > blockSize) blocksAccessed++;
+    if (address.offset + recordSize > blockSize) blocksAccessed++;
     // Return the address with the record that was copied
     return address;
 }
 
 Address Storage::saveRecordToStorage(void *record, size_t recordSize, Address recordAddress) {
     // Calculating the address for the record to be stored and copying it there
-    memcpy((char *) recordAddress.getBlockAddress() + recordAddress.getOffset(), record, recordSize);
+    memcpy((char *) recordAddress.blockAddress + recordAddress.offset, record, recordSize);
     // Increase the number of blocks that are accessed
     blocksAccessed++;
     // Increasing the number of block that are accessed if the record spans to 2 blocks
-    if (recordAddress.getOffset() + recordSize > blockSize) blocksAccessed++;
+    if (recordAddress.offset + recordSize > blockSize) blocksAccessed++;
     // Return the address with the record that was copied
     return recordAddress;
 }

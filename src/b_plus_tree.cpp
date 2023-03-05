@@ -29,7 +29,7 @@ BPlusTree::BPlusTree(Storage *indexes, Storage *records, size_t nodeSize) {
 TreeNode *BPlusTree::findParent(TreeNode *currentAddress, TreeNode *childAddress, int key)
 {
     // Load in the current node
-    Address currentAddressObject = Address(currentAddress, 0);
+    Address currentAddressObject{currentAddress, 0};
     TreeNode *current = (TreeNode *)indexes->loadRecordFromStorage(currentAddressObject, nodeSize);
 
     // If the current node is a leaf one, no child
@@ -83,7 +83,7 @@ int BPlusTree::getNumLevels() {
     }
 
     // Load in the root node the indexes storage
-    Address rootAddressObject = Address(rootAddress, 0);
+    Address rootAddressObject{rootAddress, 0};
     root = (TreeNode *)indexes->loadRecordFromStorage(rootAddressObject, nodeSize);
     // A current node variable to travers through the levels
     TreeNode *current = root;

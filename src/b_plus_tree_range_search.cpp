@@ -13,7 +13,7 @@ void BPlusTree::rangeSearch(float start, float end) {
     // Check if the root exists i.e. it is not a null pointer
     if (rootAddress != nullptr) {
         //Load root node from disk storage to main memory
-        Address addr = Address(rootAddress, 0);
+        Address addr{rootAddress, 0};
         root = (TreeNode *) indexes->loadRecordFromStorage(addr, nodeSize);
         //Node has been loaded from storage
         cout << "Node Accessed";
@@ -22,7 +22,7 @@ void BPlusTree::rangeSearch(float start, float end) {
         // Print the keys and pointers of root node
         // Iterate from first key/pointer to the nu,ber of keys/pointers i.e. accessing all of them
         for (int i = 0; i < root->getNumKeys(); i++) {
-            cout << root->getPointers()[i].getBlockAddress() << "|";
+            cout << root->getPointers()[i].blockAddress << "|";
             cout << root->getKeys()[i] << "|";
         }
 
@@ -47,7 +47,7 @@ void BPlusTree::rangeSearch(float start, float end) {
                     // Print the keys and block address of keys of root node
                     // Iterate from first key/pointer to the nu,ber of keys/pointers i.e. accessing all of them
                     for (int i = 0; i < temp->getNumKeys(); i++) {
-                        cout << temp->getPointers()[i].getBlockAddress() << "|";
+                        cout << temp->getPointers()[i].blockAddress << "|";
                         cout << temp->getKeys()[i] << "|";
 
                     }
@@ -66,7 +66,7 @@ void BPlusTree::rangeSearch(float start, float end) {
                     // Outputs the block addresses and keys of the node's children.
                     cout << "Node Accessed";
                     for (int i = 0; i < temp->getNumKeys(); i++) {
-                        cout << temp->getPointers()[i].getBlockAddress() << "|";
+                        cout << temp->getPointers()[i].blockAddress << "|";
                         cout << temp->getKeys()[i] << "|";
 
                     }
@@ -93,7 +93,7 @@ void BPlusTree::rangeSearch(float start, float end) {
                     // Loop through each key in the current leaf node
                     for (int i = 0; i < temp->getNumKeys(); i++) {
                         // Print the block address and key for each node entry
-                        cout << temp->getPointers()[i].getBlockAddress() << "|";
+                        cout << temp->getPointers()[i].blockAddress << "|";
                         cout << temp->getKeys()[i] << "|";
 
                     }
@@ -114,14 +114,14 @@ void BPlusTree::rangeSearch(float start, float end) {
 
                 // Check if the current node temp has a right sibling
                 // And the last key of temp is not equal to end
-                if (temp->getPointers()[temp->getNumKeys()].getBlockAddress() != nullptr &&
+                if (temp->getPointers()[temp->getNumKeys()].blockAddress != nullptr &&
                     temp->getKeys()[k] != end) {
                     // Load the right sibling of temp into temp,
                     temp = (TreeNode *) indexes->loadRecordFromStorage(temp->getPointers()[k], nodeSize);
                     cout << "Node Accessed";
                     // Prints the addresses and keys of the nodes that were accessed in the process.
                     for (int i = 0; i < temp->getNumKeys(); i++) {
-                        cout << temp->getPointers()[i].getBlockAddress() << "|";
+                        cout << temp->getPointers()[i].blockAddress << "|";
                         cout << temp->getKeys()[i] << "|";
 
                     }
