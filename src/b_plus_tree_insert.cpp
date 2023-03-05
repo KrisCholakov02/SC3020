@@ -46,22 +46,24 @@ void BPlusTree::insert(Address recordAddress, int key) {
 
             // Loop to find the key that and the pointer to the range the inserted key has to be
             for (int i = 0; i < current->numKeys; i++) {
-                // Set a variable for the next node in the search
-                TreeNode *nextNode;
                 // If the inserted key is less than the current key in the loop, go to the left pointer
                 if (key < current->keys[i]) {
                     // Load the new node from the storage
-                    nextNode = (TreeNode *) indexes->loadRecordFromStorage(current->pointers[i], nodeSize);
+                    TreeNode *nextNode = (TreeNode *) indexes->loadRecordFromStorage(current->pointers[i], nodeSize);
+                    // Set the current node to be the newly found one
+                    currentAddress = current->pointers[i].blockAddress;
+                    current = nextNode;
+                    break;
                 }
                     // Else if the key is larger than all the keys in the current node, get the last assigned pointer
                 else if (i == current->numKeys - 1) {
                     // Load the new node from the storage
-                    nextNode = (TreeNode *) indexes->loadRecordFromStorage(current->pointers[i + 1], nodeSize);
+                    TreeNode *nextNode = (TreeNode *) indexes->loadRecordFromStorage(current->pointers[i + 1], nodeSize);
+                    // Set the current node to be the newly found one
+                    currentAddress = current->pointers[i+1].blockAddress;
+                    current = nextNode;
+                    break;
                 }
-                // Set the current node to be the newly found one
-                currentAddress = current->pointers[i].blockAddress;
-                current = nextNode;
-                break;
             }
         }
 

@@ -92,10 +92,10 @@ int main() {
             // Assigning the tconst field
             strcpy(temporary.t, recordLine.substr(0, recordLine.find("\t")).c_str());
             // A check for the first line of the data.tsv, get only records without the header
-            /*
-            if (strcmp(t, "tconst") == 0) {
+
+            if (strcmp(temporary.t, "tconst") == 0) {
                 continue;
-            }*/
+            }
             string data;
             getline(recordStream, data, '\t');
 
@@ -127,6 +127,9 @@ int main() {
     cout << "(Max whole) Records per block: " << (int) BLOCK_SIZE / sizeof(Record) << endl;
     cout << "Number of blocks: " << records.getBlocksAllocated() << endl;
 
+    indexes.resetBlocksAccessed();
+    records.resetBlocksAccessed();
+
     // Experiment 2:
     printLine(DISPLAY_SIZE);
     printTitle(DISPLAY_SIZE, "Experiment 2");
@@ -139,5 +142,11 @@ int main() {
         cout << tree.getRoot()->getKeys()[i] << ", ";
     }
     std::cout << endl;
+
+    indexes.resetBlocksAccessed();
+    records.resetBlocksAccessed();
+
+    // Experiment 3:
+
     return 0;
 }
