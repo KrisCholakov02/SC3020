@@ -30,7 +30,7 @@ void printTitle(int displaySize, string text) {
 // A function to show the current of the data loading dynamically in one line
 void displayProgress(int current, int total) {
     float percentage = static_cast<float>(current) / total * 100;
-    cout << "\r" << setw(3) << static_cast<int>(percentage) << "% [";
+    cout << "\r" << getw(reinterpret_cast<FILE *>(3)) << static_cast<int>(percentage) << "% [";
     int progressLength = static_cast<int>(percentage) / 2;
     for (int i = 0; i < 50; i++) {
         if (i < progressLength) {
@@ -104,7 +104,7 @@ int main() {
             recordStream >> rating >> numVotes;
 
             // Constructing the record
-            Record current = Record(t, rating, numVotes);
+            Record current{t,rating, numVotes};
 
             // Saving it to the storage and increasing the counter of saved records in the storage
             Address currentRecordAddress = records.saveRecordToStorage(&current, sizeof(Record));
