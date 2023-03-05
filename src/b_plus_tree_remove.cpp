@@ -10,688 +10,741 @@
 
 using namespace std;
 
-int BPlusTree::remove(float key)
-{
-    // set numNodes before deletion
-    numNodes = index->getAllocated();
+//Removing record
+int BPlusTree::remove(int key) {
+    // set number of nodes the current tree contains before removing a key
+    numNodes = indexes->getBlocksAllocated();
 
-    // Tree is empty.
-    if (rootAddress == nullptr)
-    {
-        throw std::logic_error("Tree is empty!");
-    }
-    else
-    {
-        // Load in root from the disk.
-        Address rootDiskAddress{rootAddress, 0};
-        root = (Node *)index->loadFromDisk(rootDiskAddress, nodeSize);
+    // if root address points to null, tree is empty.
+    if (rootAddress == nullptr) {
+        throw std::logic_error("B+ tree is empty!");
+    } else {
+        // if the tree is not empty,find in address of root node from the disk with 0 offset.
+        Address rootStorageAddress = Address(rootAddress, 0);
+        root = (TreeNode *) indexes->loadRecordFromStorage(rootStorageAddress, nodeSize);
 
-        Node *cursor = root;
-        Node *parent;                          // Keep track of the parent as we go deeper into the tree in case we need to update it.
-        void *parentDiskAddress = rootAddress; // Keep track of parent's disk address as well so we can update parent in disk.
-        void *cursorDiskAddress = rootAddress; // Store current node's disk address in case we need to update it in disk.
-        int leftSibling, rightSibling; // Index of left and right child to borrow from.
+        TreeNode *cursor = root;
 
-        // While not leaf, keep following the nodes to correct key.
-        while (cursor->isLeaf == false)
-        {
-            // Set the parent of the node (in case we need to assign new child later), and its disk address.
-            parent = cursor;
-            parentDiskAddress = cursorDiskAddress;
+        //cursorStorageAddress keeps track of the disk/storage address of the current node being accessed
+        void *cursorStorageAddress = rootAddress;
+        //Store the indices of left node and right node of current node,
+        //So we can borrow from them if possible and if necessary conditions are maintained
+        int leftSibling, rightSibling;
 
-            // Check through all keys of the node to find key and pointer to follow downwards.
-            for (int i = 0; i < cursor->numKeys; i++)
-            {
-                // Keep track of left and right to borrow.
-                leftSibling = i - 1;
-                rightSibling = i + 1;
+        //parentNode tracks the parent of each node so it can be updated if need be
+        TreeNode *parentNode;
+        //parentStorageAddress keeps track of parent of each node as disk address so we can update if need be
+        void *parentStorageAddress = rootAddress;
 
-                // If key is lesser than current key, go to the left pointer's node.
-                if (key < cursor->keys[i])
-                {
-                    // Load node in from disk to main memory.
-                    Node *mainMemoryNode = (Node *)index->loadFromDisk(cursor->pointers[i], nodeSize);
+        // While cursor is not pointing to a leaf node, keep traversing through the tree to find the desired key.
+        // This is to find the leaf node that points to the key in disk
+        while (cursor->isLeafNode() == false) {
+            // If node is not a leaf node, we need to go to next level.
+            // Before going ot next level, store address of current node in parent node
+            // Also store disk storage address of current node as parent storage address
+            // Next we go deeper in the tree - to the next level
+            parentNode = cursor;
+            parentStorageAddress = cursorStorageAddress;
 
-                    // Update cursorDiskAddress to maintain address in disk if we need to update nodes.
-                    cursorDiskAddress = cursor->pointers[i].blockAddress;
+            // Traverse through all the keys of the tree node to find the suitable key and pointer value
+            // We follow them to go deeper in the tree
+            for (int x = 0; x < cursor->numKeys; x++) {
+                // Store the left and right sibling indices from which we can borrow a node if allowed
+                //to the right x+1 index
+                rightSibling = x + 1;
+                //to the left x-1 index
+                leftSibling = x - 1;
 
-                    // Move to new node in main memory.
-                    cursor = (Node *)mainMemoryNode;
+                //First need to find the given key in tree
+
+                // Check if given key is greater than all node keys, reached last node
+                // Current node pointing to last node
+                // If yes go straightaway to the last pointer in TreeNode i.e. the rightmodet pointer
+                if (x == cursor->numKeys - 1) {
+                    // Load the node from disk storage to main memory.
+                    TreeNode *mainMemoryNode = (TreeNode *) indexes->loadRecordFromStorage(cursor->pointers[x + 1],
+                                                                                           nodeSize);
+
+                    // Update cursorStorageAddress to keep track of pointer in the node for future updates
+                    cursorStorageAddress = cursor->pointers[x + 1].blockAddress;
+
+                    // Update current node to point to a new node in the main memory
+                    cursor = (TreeNode *) mainMemoryNode;
+
+                    //Update the left and right sibling indexes
+                    leftSibling = x;
+                    rightSibling = x + 2;
+
                     break;
                 }
-                // Else if key larger than all keys in the node, go to last pointer's node (rightmost).
-                if (i == cursor->numKeys - 1)
-                {
-                    leftSibling = i;
-                    rightSibling = i + 2;
 
-                    // Load node in from disk to main memory.
-                    Node *mainMemoryNode = (Node *)index->loadFromDisk(cursor->pointers[i + 1], nodeSize);
+                // Check if key is smaller than the current key,
+                // Follow the node pointed by left pointer.
+                if (key < cursor->keys[x]) {
+                    // Load the node pointed by left ptr in from disk storage to main memory.
+                    TreeNode *mainMemoryNode = (TreeNode *) indexes->loadRecordFromStorage(cursor->pointers[x],
+                                                                                           nodeSize);
 
-                    // Update cursorDiskAddress to maintain address in disk if we need to update nodes.
-                    cursorDiskAddress = cursor->pointers[i + 1].blockAddress;
+                    // Update cursorStorageAddress to keep track of pointer in the node for future updates
+                    cursorStorageAddress = cursor->pointers[x].blockAddress;
 
-                    // Move to new node in main memory.
-                    cursor = (Node *)mainMemoryNode;
+                    // Change current node to point to the new TreeNode in main memory.
+                    cursor = (TreeNode *) mainMemoryNode;
                     break;
                 }
+
             }
         }
 
-        // now that we have found the leaf node that might contain the key, we will try and find the position of the key here (if exists)
-        // search if the key to be deleted exists in this bplustree
-        bool found = false;
-        int pos;
-        // also works for duplicates
-        for (pos = 0; pos < cursor->numKeys; pos++)
-        {
-            if (cursor->keys[pos] == key)
-            {
-                found = true;
+        // After finding the leaf node which points to the desired key
+        // Find the position of this key, is it exists
+        // Find if the key of the record to be removed, ecen exists in our B+ tree
+
+        //assuming we dont find key, initially set key_found as false
+        //position points to the location/ index where key was found
+        int position;
+        bool key_found = false;
+
+        // Making sure code also works for duplicate key values
+        //iterate through all the keys
+        for (position = 0; position < cursor->numKeys; position++) {
+            //Check is key of current node points to our desired value
+            if (key == cursor->keys[position]) {
+                //set key found to be true and exit
+                key_found = true;
                 break;
             }
         }
 
-        // If key to be deleted does not exist in the tree, return error.
-        if (!found)
-        {
-            std::cout << "Can't find specified key " << key << " to delete!" << endl;
+        // Check is key_found is still false
+        // This indicates required key was not found in the b+ tree, thereby we return the logical error message
+        if (key_found == false) {
+            std::cout << "Failed to find the required key " << key << " to remove as it does not exist in tree!"
+                      << endl;
 
-            // update numNodes and numNodesDeleted after deletion
-            int numNodesDeleted = numNodes - index->getAllocated();
-            numNodes = index->getAllocated();
+            // Once the node is deleted, store the number of nodes deleted in the process
+            // Update the current total number of nodes
+            int numNodesDeleted = numNodes - indexes->getBlocksAllocated();
+            numNodes = indexes->getBlocksAllocated();
             return numNodesDeleted;
         }
 
-        // pos is the position where we found the key.
-        // We must delete the entire linked-list before we delete the key, otherwise we lose access to the linked list head.
-        // Delete the linked list stored under the key.
-        removeLL(cursor->pointers[pos]);
+        // Before proceeding to delete the key, delete entire linked list stored under the key.
+        // This is done so we don't lose head of linked list
+        removeLL(cursor->pointers[position]);
 
-        // Now, we can delete the key. Move all keys/pointers forward to replace its values.
-        for (int i = pos; i < cursor->numKeys; i++)
-        {
-            cursor->keys[i] = cursor->keys[i + 1];
-            cursor->pointers[i] = cursor->pointers[i + 1];
+        // Proceed to delete the key.
+        // Shift all remaining keys and pointers forward respectively to replace values of deleted record.
+        for (int x = position; x < cursor->numKeys; x++) {
+            //Update the keys and pointer positions to next
+            cursor->pointers[x] = cursor->pointers[x + 1];
+            cursor->keys[x] = cursor->keys[x + 1];
         }
-
+        //update current node pointer
         cursor->numKeys--;
 
-        // // Change the key removed to empty float
-        // for (int i = cursor->numKeys; i < maxKeys; i++) {
-        //   cursor->keys[i] = float();
-        // }
-
-        // Move the last pointer forward (if any).
+        // If there is a last pointer left, move it forward.
         cursor->pointers[cursor->numKeys] = cursor->pointers[cursor->numKeys + 1];
 
-        // Set all forward pointers from numKeys onwards to nullptr.
-        for (int i = cursor->numKeys + 1; i < maxKeys + 1; i++)
-        {
-            Address nullAddress{nullptr, 0};
-            cursor->pointers[i] = nullAddress;
+        // Set all remaining pointers from the filled number of key pointers to nullptr
+        for (int x = cursor->numKeys + 1; x < maxNumKeys + 1; x++) {
+            Address nullAddress = Address(nullptr, 0);
+            cursor->pointers[x] = nullAddress;
         }
 
-        // If current node is root, check if tree still has keys.
-        if (cursor == root)
-        {
-            if (cursor->numKeys == 0)
-            {
-                // Delete the entire root node and deallocate it.
-                std::cout << "Congratulations! You deleted the entire index!" << endl;
+        // If current node points to rootNode
+        if (root == cursor) {
+            //Check if this root node/ current node has remaining keys
+            if (cursor->numKeys == 0) {
+                // Delete the entire rootNode and deallocate it.
+                std::cout << "Congratulations! Successfully deleted the entire indices!" << endl;
 
-                // Deallocate block used to store root node.
-                Address rootDiskAddress{rootAddress, 0};
-                index->deallocate(rootDiskAddress, nodeSize);
+                // Proceed to deallocate the block in disk storage used to store root node.
+                Address rootStorageAddress = Address(rootAddress, 0);
+                indexes->deallocateRecord(rootStorageAddress, nodeSize);
 
                 // Reset root pointers in the B+ Tree.
-                root = nullptr;
+                //Update root address pointer and pointer to root node in B+ tree to null
                 rootAddress = nullptr;
+                root = nullptr;
+
 
             }
-            std::cout << "Successfully deleted " << key << endl;
+            //Inform user of deleting key successfully
+            std::cout << "Deletion successful" << key << endl;
 
-            // update numNodes and numNodesDeleted after deletion
-            int numNodesDeleted = numNodes - index->getAllocated();
-            numNodes = index->getAllocated();
+            // Once the node is deleted, store the number of nodes deleted in the process
+            // Update the current total number of nodes
+            int numNodesDeleted = numNodes - indexes->getBlocksAllocated();
+            numNodes = indexes->getBlocksAllocated();
 
-            // Save to disk.
-            Address cursorAddress = {cursorDiskAddress, 0};
-            index->saveToDisk(cursor, nodeSize, cursorAddress);
-
-            return numNodesDeleted;
-        }
-
-        // If we didn't delete from root, we check if we have minimum keys ⌊(n+1)/2⌋ for leaf.
-        if (cursor->numKeys >= (maxKeys + 1) / 2)
-        {
-            // No underflow, so we're done.
-            std::cout << "Successfully deleted " << key << endl;
-
-            // update numNodes and numNodesDeleted after deletion
-            int numNodesDeleted = numNodes - index->getAllocated();
-            numNodes = index->getAllocated();
-
-            // Save to disk.
-            Address cursorAddress = {cursorDiskAddress, 0};
-            index->saveToDisk(cursor, nodeSize, cursorAddress);
+            // Save the changes and these updated record addressed to storage
+            Address cursorAddress = Address(cursorStorageAddress, 0);
+            indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
 
             return numNodesDeleted;
         }
 
-        // If we reach here, means we have underflow (not enough keys for balanced tree).
-        // Try to take from left sibling (node on same level) first.
-        // Check if left sibling even exists.
-        if (leftSibling >= 0)
-        {
+        //Case 2:
+        // If above deletion was unsuccessful
+        // Check if requirements for deletion are met
+        // Check if we have minimum number of keys required for stable B+ tree structure
+        // Check if we have minimum keys ⌊(n+1)/2⌋ for leaf node.
+
+        //If number of keys greater than minimum requirement, no underflow so we're done
+        if (cursor->numKeys >= (maxNumKeys + 1) / 2) {
+            std::cout << "Deletion Successful " << key << endl;
+
+            // Once the node is deleted, store the number of nodes deleted in the process
+            // Update the current total number of nodes
+            int numNodesDeleted = numNodes - indexes->getBlocksAllocated();
+            numNodes = indexes->getBlocksAllocated();
+
+            // Save the changes and these updated record addressed to storage
+            Address cursorAddress = Address(cursorStorageAddress, 0);
+            indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
+
+            return numNodesDeleted;
+        }
+
+
+        //However, if we reach to this place in code, it indicates underflow has occurred
+        // This means we do not have sufficient keys to maintain structure of balanced b+ tree
+
+        //Case 3:
+        // Attempt first to borrow from left sibling of current node(on same level).
+        // Check if left sibling even exists by checking if its index is in valid range i.e. greater than 0.
+        if (leftSibling >= 0) {
             // Load in left sibling from disk.
-            Node *leftNode = (Node *)index->loadFromDisk(parent->pointers[leftSibling], nodeSize);
+            TreeNode *leftSiblingNode = (TreeNode *) indexes->loadRecordFromStorage(parentNode->pointers[leftSibling],
+                                                                                    nodeSize);
 
-            // Check if we can steal (ahem, borrow) a key without underflow.
-            if (leftNode->numKeys >= (maxKeys + 1) / 2 + 1)
-            {
-                // We will insert this borrowed key into the leftmost of current node (smaller).
+            // Check if we can borrow a key from the left neighbour node without causing underflow.
+            // Check if after borrowing, number of keys in left sibling node remains
+            // greater than equal to '>=' minimum number of keys required for stable structure
+            if (leftSiblingNode->numKeys >= (maxNumKeys + 1) / 2 + 1) {
+                // Since the borrowed key will be smaller than keys in current node
+                // Insert it as the leftmost key in current node and shift remaining keys
 
-                // Shift last pointer back by one first.
+                // Firstly, shift last pointer back by one place.
                 cursor->pointers[cursor->numKeys + 1] = cursor->pointers[cursor->numKeys];
 
-                // Shift all remaining keys and pointers back by one.
-                for (int i = cursor->numKeys; i > 0; i--)
-                {
-                    cursor->keys[i] = cursor->keys[i - 1];
-                    cursor->pointers[i] = cursor->pointers[i - 1];
+                // Next we shift all remaining keys and pointers back by one.
+                for (int x = cursor->numKeys; x > 0; x--) {
+                    //Update values of pointers and keys accordingly
+                    cursor->pointers[x] = cursor->pointers[x - 1];
+                    cursor->keys[x] = cursor->keys[x - 1];
                 }
 
-                // Transfer borrowed key and pointer (rightmost of left node) over to current node.
-                cursor->keys[0] = leftNode->keys[leftNode->numKeys - 1];
-                cursor->pointers[0] = leftNode->pointers[leftNode->numKeys - 1];
+                // Complete the transfer process
+                // Move the key, pointer from rightmost of left sibling node to leftmost of current node
+                cursor->pointers[0] = leftSiblingNode->pointers[leftSiblingNode->numKeys - 1];
+                cursor->keys[0] = leftSiblingNode->keys[leftSiblingNode->numKeys - 1];
+                //Update number of keys - add 1 in current node and subtract 1 from left sibling node
                 cursor->numKeys++;
-                leftNode->numKeys--;
+                leftSiblingNode->numKeys--;
 
-                // Update left sibling (shift pointers left)
-                leftNode->pointers[cursor->numKeys] = leftNode->pointers[cursor->numKeys + 1];
+                // Shift pointers to the left to update left sibling node
+                leftSiblingNode->pointers[cursor->numKeys] = leftSiblingNode->pointers[cursor->numKeys + 1];
 
-                // Update parent node's key
-                parent->keys[leftSibling] = cursor->keys[0];
+                // Update keys of parent node of left sibling accordingly
+                parentNode->keys[leftSibling] = cursor->keys[0];
+                // Save this parent node to disk storage
+                Address parentAddress = Address(parentStorageAddress, 0);
+                indexes->saveRecordToStorage(parentNode, nodeSize, parentAddress);
 
-                // Save parent to disk.
-                Address parentAddress{parentDiskAddress, 0};
-                index->saveToDisk(parent, nodeSize, parentAddress);
+                // Save this left sibling node to disk storage
+                indexes->saveRecordToStorage(leftSiblingNode, nodeSize, parentNode->pointers[leftSibling]);
 
-                // Save left sibling to disk.
-                index->saveToDisk(leftNode, nodeSize, parent->pointers[leftSibling]);
+                // Save the current node to disk storage
+                Address cursorAddress = Address(cursorStorageAddress, 0);
+                indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
 
-                // Save current node to disk.
-                Address cursorAddress = {cursorDiskAddress, 0};
-                index->saveToDisk(cursor, nodeSize, cursorAddress);
-
-                // update numNodes and numNodesDeleted after deletion
-                int numNodesDeleted = numNodes - index->getAllocated();
-                numNodes = index->getAllocated();
+                // Once the node is deleted, store the number of nodes deleted in the process
+                // Update the current total number of nodes
+                int numNodesDeleted = numNodes - indexes->getBlocksAllocated();
+                numNodes = indexes->getBlocksAllocated();
                 return numNodesDeleted;
             }
         }
 
-        // If we can't take from the left sibling, take from the right.
+        // Case 4:
+        // If unsuccessful in borrowing from the left sibling, attempt to borrow from right from the right.
         // Check if we even have a right sibling.
-        if (rightSibling <= parent->numKeys)
-        {
-            // If we do, load in right sibling from disk.
-            Node *rightNode = (Node *)index->loadFromDisk(parent->pointers[rightSibling], nodeSize);
+        if (rightSibling <= parentNode->numKeys) {
+            // Load in right sibling from disk.
+            TreeNode *rightNode = (TreeNode *) indexes->loadRecordFromStorage(parentNode->pointers[rightSibling],
+                                                                              nodeSize);
 
-            // Check if we can steal (ahem, borrow) a key without underflow.
-            if (rightNode->numKeys >= (maxKeys + 1) / 2 + 1)
-            {
+            // Check if we can borrow a key from the left neighbour node without causing underflow.
+            // Check if after borrowing, number of keys in left sibling node remains
+            // greater than equal to '>=' minimum number of keys required for stable structure
+            if (rightNode->numKeys >= (maxNumKeys + 1) / 2 + 1) {
 
-                // We will insert this borrowed key into the rightmost of current node (larger).
-                // Shift last pointer back by one first.
+                // Since the borrowed key will be larger than keys in current node
+                // Insert it as the rightmost key in current node
+                // It is also the leftmost key of right sibling node
+                // Shift remaining keys in right sibling node one place to the left
                 cursor->pointers[cursor->numKeys + 1] = cursor->pointers[cursor->numKeys];
 
-                // No need to shift remaining pointers and keys since we are inserting on the rightmost.
-                // Transfer borrowed key and pointer (leftmost of right node) over to rightmost of current node.
-                cursor->keys[cursor->numKeys] = rightNode->keys[0];
+                // Complete the transfer process
+                // Move the key, pointer from leftmost of right sibling node to rightmost of current node
                 cursor->pointers[cursor->numKeys] = rightNode->pointers[0];
+                cursor->keys[cursor->numKeys] = rightNode->keys[0];
+                //Update number of keys - add 1 in current node and subtract 1 from right sibling node
                 cursor->numKeys++;
                 rightNode->numKeys--;
 
-                // Update right sibling (shift keys and pointers left)
-                for (int i = 0; i < rightNode->numKeys; i++)
-                {
-                    rightNode->keys[i] = rightNode->keys[i + 1];
-                    rightNode->pointers[i] = rightNode->pointers[i + 1];
+                // Balance the right sibling node by shifting remaining keys and pointers to the left
+                for (int x = 0; x < rightNode->numKeys; x++) {
+                    rightNode->keys[x] = rightNode->keys[x + 1];
+                    rightNode->pointers[x] = rightNode->pointers[x + 1];
                 }
 
                 // Move right sibling's last pointer left by one too.
                 rightNode->pointers[cursor->numKeys] = rightNode->pointers[cursor->numKeys + 1];
 
-                // Update parent node's key to be new lower bound of right sibling.
-                parent->keys[rightSibling - 1] = rightNode->keys[0];
+                // According to rules, change key of parent node's to be new lower bound of right sibling.
+                // This is to manage balance of tree
+                parentNode->keys[rightSibling - 1] = rightNode->keys[0];
 
-                // Save parent to disk.
-                Address parentAddress{parentDiskAddress, 0};
-                index->saveToDisk(parent, nodeSize, parentAddress);
+                // Save address of parent node and node itself to disk storage.
+                Address parentAddress = Address(parentStorageAddress, 0);
+                indexes->saveRecordToStorage(parentNode, nodeSize, parentAddress);
+                // Save node right sibling to disk storage.
+                indexes->saveRecordToStorage(rightNode, nodeSize, parentNode->pointers[rightSibling]);
 
-                // Save right sibling to disk.
-                index->saveToDisk(rightNode, nodeSize, parent->pointers[rightSibling]);
+                // Save current node to disk storage
+                Address cursorAddress = Address(cursorStorageAddress, 0);
+                indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
 
-                // Save current node to disk.
-                Address cursorAddress = {cursorDiskAddress, 0};
-                index->saveToDisk(cursor, nodeSize, cursorAddress);
-
-                // update numNodes and numNodesDeleted after deletion
-                int numNodesDeleted = numNodes - index->getAllocated();
-                numNodes = index->getAllocated();
+                // Once the node is deleted, store the number of nodes deleted in the process
+                // Update the current total number of nodes
+                int numNodesDeleted = numNodes - indexes->getBlocksAllocated();
+                numNodes = indexes->getBlocksAllocated();
                 return numNodesDeleted;
             }
         }
 
-        // If we reach here, means no sibling we can steal from.
-        // To resolve underflow, we must merge nodes.
+        //Case 5:
+        // If we reach this place in code, it indicates unavailability to steal from neighbouring nodes
+        // This is due to necessary requirements of minimum number of keys in each node for B+ tree balance
 
-        // If left sibling exists, merge with it.
-        if (leftSibling >= 0)
-        {
-            // Load in left sibling from disk.
-            Node *leftNode = (Node *)index->loadFromDisk(parent->pointers[leftSibling], nodeSize);
+        // Solution: Merge Nodes.
+        // Note: Merging will always succeed due to ⌊(n)/2⌋ (left) + ⌊(n-1)/2⌋ (current).
 
-            // Transfer all keys and pointers from current node to left node.
-            // Note: Merging will always suceed due to ⌊(n)/2⌋ (left) + ⌊(n-1)/2⌋ (current).
-            for (int i = leftNode->numKeys, j = 0; j < cursor->numKeys; i++, j++)
-            {
-                leftNode->keys[i] = cursor->keys[j];
-                leftNode->pointers[i] = cursor->pointers[j];
+        // Left
+        // Start with left sibling node if available
+        // Proceed to merge with it.
+        if (leftSibling >= 0) {
+            // Load in left sibling from disk storage.
+            TreeNode *leftSiblingNode = (TreeNode *) indexes->loadRecordFromStorage(parentNode->pointers[leftSibling],
+                                                                                    nodeSize);
+
+            // Proceed with the transfer of all keys/pointers from current node to left sibling node.
+            for (int x = leftSiblingNode->numKeys, j = 0; j < cursor->numKeys; x++, j++) {
+                leftSiblingNode->keys[x] = cursor->keys[j];
+                leftSiblingNode->pointers[x] = cursor->pointers[j];
             }
 
-            // Update variables, make left node last pointer point to the next leaf node pointed to by current.
-            leftNode->numKeys += cursor->numKeys;
-            leftNode->pointers[leftNode->numKeys] = cursor->pointers[cursor->numKeys];
+            // Update the number of keys in left sibling node
+            // By adding number of keys in left sibling node + number of keys in current node
+            leftSiblingNode->numKeys += cursor->numKeys;
 
-            // Save left node to disk.
-            index->saveToDisk(leftNode, nodeSize, parent->pointers[leftSibling]);
+            // Update respective variables such as keys and pointers
+            // Make last pointer of left sibling node point to current which is the next leaf node
+            leftSiblingNode->pointers[leftSiblingNode->numKeys] = cursor->pointers[cursor->numKeys];
 
-            // We need to update the parent in order to fully remove the current node.
-            removeInternal(parent->keys[leftSibling], (Node *)parentDiskAddress, (Node *)cursorDiskAddress);
+            // Save this updated left node to disk storage
+            indexes->saveRecordToStorage(leftSiblingNode, nodeSize, parentNode->pointers[leftSibling]);
 
-            // Now that we have updated parent, we can just delete the current node from disk.
-            Address cursorAddress{cursorDiskAddress, 0};
-            index->deallocate(cursorAddress, nodeSize);
+            // Now we need to update the parents node until the time B+ tree becomes stable
+            updateInternal(parentNode->keys[leftSibling], (TreeNode *) parentStorageAddress,
+                           (TreeNode *) cursorStorageAddress);
+
+            // After updating parent nodes, just delete the current node from disk by deallocating.
+            Address cursorAddress = Address(cursorStorageAddress, 0);
+            indexes->deallocateRecord(cursorAddress, nodeSize);
         }
-            // If left sibling doesn't exist, try to merge with right sibling.
-        else if (rightSibling <= parent->numKeys)
-        {
-            // Load in right sibling from disk.
-            Node *rightNode = (Node *)index->loadFromDisk(parent->pointers[rightSibling], nodeSize);
 
-            // Note we are moving right node's stuff into ours.
-            // Transfer all keys and pointers from right node into current.
-            // Note: Merging will always suceed due to ⌊(n)/2⌋ (left) + ⌊(n-1)/2⌋ (current).
-            for (int i = cursor->numKeys, j = 0; j < rightNode->numKeys; i++, j++)
-            {
-                cursor->keys[i] = rightNode->keys[j];
-                cursor->pointers[i] = rightNode->pointers[j];
+            // Right
+            // However, If left sibling doesn't exist,
+            // Merge with right sibling if it exists.
+        else if (rightSibling <= parentNode->numKeys) {
+            // Load in right sibling from disk storage.
+            TreeNode *rightSiblingNode = (TreeNode *) indexes->loadRecordFromStorage(parentNode->pointers[rightSibling],
+                                                                                     nodeSize);
+
+            // Proceed with the transfer of all keys/pointers from right sibling node to current node.
+            for (int x = cursor->numKeys, j = 0; j < rightSiblingNode->numKeys; x++, j++) {
+                //Update all keys and pointers within current node
+                cursor->pointers[x] = rightSiblingNode->pointers[j];
+                cursor->keys[x] = rightSiblingNode->keys[j];
             }
 
-            // Update variables, make current node last pointer point to the next leaf node pointed to by right node.
-            cursor->numKeys += rightNode->numKeys;
-            cursor->pointers[cursor->numKeys] = rightNode->pointers[rightNode->numKeys];
+            // Update respective variables such as keys and pointers
+            // Make last pointer of current node point to head pointer to left sibling node which is the next leaf node
+            cursor->pointers[cursor->numKeys] = rightSiblingNode->pointers[rightSiblingNode->numKeys];
+            cursor->numKeys += rightSiblingNode->numKeys;
 
-            // Save current node to disk.
-            Address cursorAddress{cursorDiskAddress, 0};
-            index->saveToDisk(cursor, nodeSize, cursorAddress);
 
-            // We need to update the parent in order to fully remove the right node.
-            void *rightNodeAddress = parent->pointers[rightSibling].blockAddress;
-            removeInternal(parent->keys[rightSibling - 1], (Node *)parentDiskAddress, (Node *)rightNodeAddress);
+            // Save current node being pointed into disk storage.
+            Address cursorAddress = Address(cursorStorageAddress, 0);
+            indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
 
-            // Now that we have updated parent, we can just delete the right node from disk.
-            Address rightNodeDiskAddress{rightNodeAddress, 0};
-            index->deallocate(rightNodeDiskAddress, nodeSize);
+            // Update all parent/internal nodes until structure of tree balanced to fully remove the right node.
+            void *rightNodeAddress = parentNode->pointers[rightSibling].blockAddress;
+            updateInternal(parentNode->keys[rightSibling - 1], (TreeNode *) parentStorageAddress,
+                           (TreeNode *) rightNodeAddress);
+
+            // After updating parent nodes, just delete the right sibling node from disk by deallocating.
+            Address rightNodeDiskAddress = Address(rightNodeAddress, 0);
+            indexes->deallocateRecord(rightNodeDiskAddress, nodeSize);
         }
     }
 
-    // update numNodes and numNodesDeleted after deletion
-    int numNodesDeleted = numNodes - index->getAllocated();
-    numNodes = index->getAllocated();
+    // Once the node is deleted, store the number of nodes deleted in the process
+    // Update the current total number of nodes
+    int numNodesDeleted = numNodes - indexes->getBlocksAllocated();
+    numNodes = indexes->getBlocksAllocated();
     return numNodesDeleted;
 }
 
 
-// Takes in the parent disk address, the child address to delete, and removes the child.
-void BPlusTree::removeInternal(float key, Node *cursorDiskAddress, Node *childDiskAddress)
-{
-    // Load in cursor (parent) and child from disk to get latest copy.
-    Address cursorAddress{cursorDiskAddress, 0};
-    Node *cursor = (Node *)index->loadFromDisk(cursorAddress, nodeSize);
+//Recursive function to deallocate records/ entire blocks if safe till no more left to deallocate
+void BPlusTree::removeLL(Address headAddress) {
+    // Load in the head of node directly from disk storage.
+    TreeNode *head = (TreeNode *) indexes->loadRecordFromStorage(headAddress, nodeSize);
 
-    // Check if cursor is root via disk address.
-    if (cursorDiskAddress == rootAddress)
-    {
+    // Deleting the current head.
+    // Continue to deallocate the entire block through the list till no more nodes left to deallocate
+
+    // Deallocating current record using deallocateRecord function.
+    indexes->deallocateRecord(headAddress, nodeSize);
+
+    //Base condition - stop if end of file reached
+    if (head->pointers[head->numKeys].blockAddress == nullptr) {
+        std::cout << "Reached the end of linked list";
+        return;
+    }
+    // Nodes still left in linked list
+    if (head->pointers[head->numKeys].blockAddress != nullptr) {
+        removeLL(head->pointers[head->numKeys]);
+    }
+}
+
+// Adjusting the parent
+// If the parent is not full enough recursively apply the deletion algorithm in parent
+
+
+// This function runs till all parent/internal nodes are updated to
+// Regain B+ Tree structure after removing a node in case 5, no sibling node found to borrow
+// Inputs storage address of parent, the child address to delete, and removes the child.
+void BPlusTree::updateInternal(int key, TreeNode *cursorDiskAddress, TreeNode *childDiskAddress) {
+    // Load in the latest copy of parent which is pointed to by cursor and child from disk storage
+    Address cursorAddress = Address(cursorDiskAddress, 0);
+    TreeNode *cursor = (TreeNode *) indexes->loadRecordFromStorage(cursorAddress, nodeSize);
+
+    // Proceed to retrieve address of child node to be removed
+    Address childAddress = Address(childDiskAddress, 0);
+
+    // Start by checking is cursor storage address is same as root address
+    if (cursorDiskAddress == rootAddress) {
         root = cursor;
     }
 
-    // Get address of child to delete.
-    Address childAddress{childDiskAddress, 0};
+    if (cursor == root) {
+        // All edits happen in main memory
 
-    // If current parent is root
-    if (cursor == root)
-    {
-        // If we have to remove all keys in root (as parent) we need to change the root to its child.
-        if (cursor->numKeys == 1)
-        {
-            // If the larger pointer points to child, make it the new root.
-            if (cursor->pointers[1].blockAddress == childDiskAddress)
-            {
-                // Delete the child completely
-                index->deallocate(childAddress, nodeSize);
+        // If there is only one key in root node
+        // We have to remove all keys and need to change the root node to its child.
+        if (cursor->numKeys == 1) {
+            // If the second (larger)pointer points to child, make it the new root.
+            if (cursor->pointers[1].blockAddress == childDiskAddress) {
+                // Remove the child completely
+                indexes->deallocateRecord(childAddress, nodeSize);
 
-                // Set new root to be the parent's left pointer
-                // Load left pointer into main memory and update root.
-                root = (Node *)index->loadFromDisk(cursor->pointers[0], nodeSize);
-                rootAddress = (Node *)cursor->pointers[0].blockAddress;
+                // Update root to now point to the parent's left pointer
+                // Subsequently, load the left pointer into main memory and update root node.
+                root = (TreeNode *) indexes->loadRecordFromStorage(cursor->pointers[0], nodeSize);
+                rootAddress = (TreeNode *) cursor->pointers[0].blockAddress;
 
-                // We can delete the old root (parent).
-                index->deallocate(cursorAddress, nodeSize);
+                // We then proceed to deallocate the old parent root
+                indexes->deallocateRecord(cursorAddress, nodeSize);
 
-                // Nothing to save to disk. All updates happened in main memory.
-                std::cout << "Root node changed." << endl;
+                std::cout << "RootNode updated." << endl;
                 return;
             }
-                // Else if left pointer in root (parent) contains the child, delete from there.
-            else if (cursor->pointers[0].blockAddress == childDiskAddress)
-            {
+
+                // Else if left pointer (smaller) in root points to the child, delete from there.
+            else if (cursor->pointers[0].blockAddress == childDiskAddress) {
                 // Delete the child completely
-                index->deallocate(childAddress, nodeSize);
+                indexes->deallocateRecord(childAddress, nodeSize);
 
-                // Set new root to be the parent's right pointer
-                // Load right pointer into main memory and update root.
-                root = (Node *)index->loadFromDisk(cursor->pointers[1], nodeSize);
-                rootAddress = (Node *)cursor->pointers[1].blockAddress;
+                // Update root to now point to the parent's left pointer
+                // Subsequently, load the right pointer into main memory and update root node.
+                root = (TreeNode *) indexes->loadRecordFromStorage(cursor->pointers[1], nodeSize);
+                rootAddress = (TreeNode *) cursor->pointers[1].blockAddress;
 
-                // We can delete the old root (parent).
-                index->deallocate(cursorAddress, nodeSize);
+                // We then proceed to deallocate the old parent root
+                indexes->deallocateRecord(cursorAddress, nodeSize);
 
-                // Nothing to save to disk. All updates happened in main memory.
-                std::cout << "Root node changed." << endl;
+                std::cout << "RootNode updated." << endl;
                 return;
             }
         }
     }
 
-    // If reach here, means parent is NOT the root.
-    // Aka we need to delete an internal node (possibly recursively).
-    int pos;
+    // If we reach this part of code, indicates nothing has yet been returned
+    // It means parent node is NOT the root node.
+    // We need to delete (possibly recursively) an internal node
 
-    // Search for key to delete in parent based on child's lower bound key.
-    for (pos = 0; pos < cursor->numKeys; pos++)
-    {
-        if (cursor->keys[pos] == key)
-        {
+    int position;
+
+    // Based on the lower bounding key of child node, search for key to delete in parent
+    for (position = 0; position < cursor->numKeys; position++) {
+        //find the position of the key to be removed
+        if (cursor->keys[position] == key) {
             break;
         }
     }
 
-    // Delete the key by shifting all keys forward
-    for (int i = pos; i < cursor->numKeys; i++)
-    {
-        cursor->keys[i] = cursor->keys[i + 1];
+    // Proceed to shift all keys forward to delete the key
+    for (int x = position; x < cursor->numKeys; x++) {
+        //shifting all keys one step forward
+        cursor->keys[x] = cursor->keys[x + 1];
     }
 
-    // Search for pointer to delete in parent
-    // Remember pointers are on the RIGHT for non leaf nodes.
-    for (pos = 0; pos < cursor->numKeys + 1; pos++)
-    {
-        if (cursor->pointers[pos].blockAddress == childDiskAddress)
-        {
+    // Search for which pointer to remove in parent node
+
+    // Note: Remember pointers are on the RIGHT for non leaf nodes.
+
+    //run for loop to find position of pointer to be removed
+    for (position = 0; position < cursor->numKeys + 1; position++) {
+        if (cursor->pointers[position].blockAddress == childDiskAddress) {
             break;
         }
     }
-
-    // Now move all pointers from that point on forward by one to delete it.
-    for (int i = pos; i < cursor->numKeys + 1; i++)
-    {
-        cursor->pointers[i] = cursor->pointers[i + 1];
+    // Move all the pointer from the position point by one to be able to delete it
+    for (int x = position; x < cursor->numKeys + 1; x++) {
+        cursor->pointers[x] = cursor->pointers[x + 1];
     }
 
-    // Update numKeys
+    // Subtract numKeys by 1 after deleting a key
     cursor->numKeys--;
 
-    // Check if there's underflow in parent
-    // No underflow, life is good.
-    if (cursor->numKeys >= (maxKeys + 1) / 2 - 1)
-    {
+    //Due to removal of a key there might be an underflow in parent, if yes, need to manage that
+    // Check is each node has at least ((maxNumKeys + 1) / 2 - 1) keys
+    if (cursor->numKeys >= (maxNumKeys + 1) / 2 - 1) {
         return;
     }
 
-    // If we reach here, means there's underflow in parent's keys.
-    // Try to steal some from neighbouring nodes.
-    // If we are the root, we are screwed. Just give up.
-    if (cursorDiskAddress == rootAddress)
-    {
+    // If nothing returned, indicates underflw in parentnode after deleting a key
+    // We attempt to borrow some key(s) from neighbouring nodes.
+
+    // If this is the root node, just return, no option
+    if (cursorDiskAddress == rootAddress) {
         return;
     }
 
-    // If not, we need to find the parent of this parent to get our siblings.
+    // If not, we attempt to find the parent of the current parent to get our siblings.
     // Pass in lower bound key of our child to search for it.
-    Node *parentDiskAddress = findParent((Node *)rootAddress, cursorDiskAddress, cursor->keys[0]);
-    int leftSibling, rightSibling;
+    TreeNode *parentStorageAddress = findParent((TreeNode *) rootAddress, cursorDiskAddress, cursor->keys[0]);
+    //maintain indexes for left and right sibling nodes
+    int rightSibling, leftSibling;
 
-    // Load parent into main memory.
-    Address parentAddress{parentDiskAddress, 0};
-    Node *parent = (Node *)index->loadFromDisk(parentAddress, nodeSize);
+    // Load the parent node into main memory.
+    Address parentAddress = Address(parentStorageAddress, 0);
+    TreeNode *parent = (TreeNode *) indexes->loadRecordFromStorage(parentAddress, nodeSize);
 
-    // Find left and right sibling of cursor, iterate through pointers.
-    for (pos = 0; pos < parent->numKeys + 1; pos++)
-    {
-        if (parent->pointers[pos].blockAddress == cursorDiskAddress)
-        {
-            leftSibling = pos - 1;
-            rightSibling = pos + 1;
+    // Find left and right sibling of the current node by iterating through pointer positions.
+    //Do all the way from 0 to number of keys
+    for (position = 0; position < parent->numKeys + 1; position++) {
+        if (parent->pointers[position].blockAddress == cursorDiskAddress) {
+            //Update the indexes of left and right siblings
+            rightSibling = position + 1;
+            leftSibling = position - 1;
             break;
         }
     }
 
-    // Try to borrow a key from either the left or right sibling.
-    // Check if left sibling exists. If so, try to borrow.
-    if (leftSibling >= 0)
-    {
-        // Load in left sibling from disk.
-        Node *leftNode = (Node *)index->loadFromDisk(parent->pointers[leftSibling], nodeSize);
+    // Attempt first to borrow from left sibling of current node(on same level).
+    // Check if left sibling even exists by checking if its index is in valid range i.e. greater than 0.
+    if (leftSibling >= 0) {
+        // Load in left sibling from disk storage.
+        TreeNode *leftNode = (TreeNode *) indexes->loadRecordFromStorage(parent->pointers[leftSibling], nodeSize);
 
-        // Check if we can steal (ahem, borrow) a key without underflow.
+        // Check if we can borrow a key from the left neighbour node without causing underflow.
+        // Check if after borrowing, number of keys in left sibling node remains
+        // greater than equal to '>=' minimum number of keys required for stable structure
         // Non leaf nodes require a minimum of ⌊n/2⌋
-        if (leftNode->numKeys >= (maxKeys + 1) / 2)
-        {
-            // We will insert this borrowed key into the leftmost of current node (smaller).
-            // Shift all remaining keys and pointers back by one.
-            for (int i = cursor->numKeys; i > 0; i--)
-            {
-                cursor->keys[i] = cursor->keys[i - 1];
+        if (leftNode->numKeys >= (maxNumKeys + 1) / 2) {
+            // Since the borrowed key will be smaller than keys in current node
+            // Insert it as the leftmost key in current node and shift remaining keys
+
+            // Shift all keys back by one place.
+            for (int x = cursor->numKeys; x > 0; x--) {
+                cursor->keys[x] = cursor->keys[x - 1];
             }
 
-            // Transfer borrowed key and pointer to cursor from left node.
-            // Basically duplicate cursor lower bound key to keep pointers correct.
+            // Transfer the borrowed key from neighbour and pointer to current node from left node.
+            // We duplicate the current node lower bound key to keep pointers correct and structure intact.
+            // Do so at 0th index of current node
             cursor->keys[0] = parent->keys[leftSibling];
             parent->keys[leftSibling] = leftNode->keys[leftNode->numKeys - 1];
 
-            // Move all pointers back to fit new one
-            for (int i = cursor->numKeys + 1; i > 0; i--)
-            {
-                cursor->pointers[i] = cursor->pointers[i - 1];
+            // Shift all pointers back by 1 to fit new one
+            for (int x = cursor->numKeys + 1; x > 0; x--) {
+                cursor->pointers[x] = cursor->pointers[x - 1];
             }
 
-            // Add pointers to cursor from left node.
+            // Add pointers from left node to current node
             cursor->pointers[0] = leftNode->pointers[leftNode->numKeys];
 
-            // Change key numbers
-            cursor->numKeys++;
+            // Change the numbers of keys in left node and current node
+            // We subtract 1 from keys in left node add 1 in current node
             leftNode->numKeys--;
+            cursor->numKeys++;
 
-            // Update left sibling (shift pointers left)
+
+            // Updating the left sibling nde by shifting pointers to the left
             leftNode->pointers[cursor->numKeys] = leftNode->pointers[cursor->numKeys + 1];
 
-            // Save parent to disk.
-            Address parentAddress{parentDiskAddress, 0};
-            index->saveToDisk(parent, nodeSize, parentAddress);
+            // Save parent to disk storage
+            Address parentAddress = Address(parentStorageAddress, 0);
+            indexes->saveRecordToStorage(parent, nodeSize, parentAddress);
 
-            // Save left sibling to disk.
-            index->saveToDisk(leftNode, nodeSize, parent->pointers[leftSibling]);
+            // Save left sibling to disk storage
+            indexes->saveRecordToStorage(leftNode, nodeSize, parent->pointers[leftSibling]);
 
-            // Save current node to disk.
-            Address cursorAddress = {cursorDiskAddress, 0};
-            index->saveToDisk(cursor, nodeSize, cursorAddress);
+            // Save current node to disk storage
+            Address cursorAddress = Address(cursorDiskAddress, 0);
+            indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
             return;
         }
     }
 
-    // If we can't take from the left sibling, take from the right.
+    // If unsuccessful in borrowing from the left sibling, attempt to borrow from right from the right.
     // Check if we even have a right sibling.
-    if (rightSibling <= parent->numKeys)
-    {
-        // If we do, load in right sibling from disk.
-        Node *rightNode = (Node *)index->loadFromDisk(parent->pointers[rightSibling], nodeSize);
+    if (rightSibling <= parent->numKeys) {
+        // If we do, load right sibling node from disk storage
+        TreeNode *rightNode = (TreeNode *) indexes->loadRecordFromStorage(parent->pointers[rightSibling], nodeSize);
 
-        // Check if we can steal (ahem, borrow) a key without underflow.
-        if (rightNode->numKeys >= (maxKeys + 1) / 2)
-        {
-            // No need to shift remaining pointers and keys since we are inserting on the rightmost.
-            // Transfer borrowed key and pointer (leftmost of right node) over to rightmost of current node.
-            cursor->keys[cursor->numKeys] = parent->keys[pos];
-            parent->keys[pos] = rightNode->keys[0];
+        // Check if we can borrow a key from the left neighbour node without causing underflow.
+        // Check if after borrowing, number of keys in left sibling node remains
+        // greater than equal to '>=' minimum number of keys required for stable structure
+        if (rightNode->numKeys >= (maxNumKeys + 1) / 2) {
+            // We do not even need to shift any remaining keys and pointers because we are inserting on the rightmost.
+            // It is also the leftmost key of right sibling node
+            // It is the rightmost key of current node
+            cursor->keys[cursor->numKeys] = parent->keys[position];
+            parent->keys[position] = rightNode->keys[0];
 
-            // Update right sibling (shift keys and pointers left)
-            for (int i = 0; i < rightNode->numKeys - 1; i++)
-            {
-                rightNode->keys[i] = rightNode->keys[i + 1];
+            // Update right sibling by shifting remaining pointers and keys
+            for (int x = 0; x < rightNode->numKeys - 1; x++) {
+                rightNode->keys[x] = rightNode->keys[x + 1];
             }
 
-            // Transfer first pointer from right node to cursor
+            // Move the first pointer from right TreeNode to the current node
             cursor->pointers[cursor->numKeys + 1] = rightNode->pointers[0];
 
-            // Shift pointers left for right node as well to delete first pointer
-            for (int i = 0; i < rightNode->numKeys; ++i)
-            {
-                rightNode->pointers[i] = rightNode->pointers[i + 1];
+            // Delete first pointer in right node and shift remaining pointers to the left
+            for (int x = 0; x < rightNode->numKeys; ++x) {
+                rightNode->pointers[x] = rightNode->pointers[x + 1];
             }
 
-            // Update numKeys
+            // Update numKeys bu adding a key to current node and subtracting a key fromt he right node
             cursor->numKeys++;
             rightNode->numKeys--;
 
-            // Save parent to disk.
-            Address parentAddress{parentDiskAddress, 0};
-            index->saveToDisk(parent, nodeSize, parentAddress);
+            // Save parent node to disk storage
+            Address parentAddress = Address(parentStorageAddress, 0);
+            indexes->saveRecordToStorage(parent, nodeSize, parentAddress);
 
-            // Save right sibling to disk.
-            index->saveToDisk(rightNode, nodeSize, parent->pointers[rightSibling]);
+            // Save right sibling node to disk storage.
+            indexes->saveRecordToStorage(rightNode, nodeSize, parent->pointers[rightSibling]);
 
-            // Save current node to disk.
-            Address cursorAddress = {cursorDiskAddress, 0};
-            index->saveToDisk(cursor, nodeSize, cursorAddress);
+            // Save current node to disk storage.
+            Address cursorAddress = Address(cursorDiskAddress, 0);
+            indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
             return;
         }
     }
 
-    // If we reach here, means no sibling we can steal from.
-    // To resolve underflow, we must merge nodes.
+    // If we reach this part of code, there was no sibling node to borrow keys from without causing imbalance in tree structure
+    // Solution: Merge nodes
+    // Note: Merging will always succeed due to ⌊(n)/2⌋ (left) + ⌊(n-1)/2⌋ (current) - never overflow or underflow.
 
-    // If left sibling exists, merge with it.
-    if (leftSibling >= 0)
-    {
-        // Load in left sibling from disk.
-        Node *leftNode = (Node *)index->loadFromDisk(parent->pointers[leftSibling], nodeSize);
+    // First attempt to merge with left node
+    if (leftSibling >= 0) {
+        // Load in left sibling from disk storage.
+        TreeNode *leftNode = (TreeNode *) indexes->loadRecordFromStorage(parent->pointers[leftSibling], nodeSize);
 
-        // Make left node's upper bound to be cursor's lower bound.
+        // Make left node's upper bound to be cursor's lower bound according to requirements.
         leftNode->keys[leftNode->numKeys] = parent->keys[leftSibling];
 
-        // Transfer all keys from current node to left node.
-        // Note: Merging will always suceed due to ⌊(n)/2⌋ (left) + ⌊(n-1)/2⌋ (current).
-        for (int i = leftNode->numKeys + 1, j = 0; j < cursor->numKeys; j++)
-        {
-            leftNode->keys[i] = cursor->keys[j];
+        // Transfer all keys from current node to left sibling node.
+        for (int x = leftNode->numKeys + 1, j = 0; j < cursor->numKeys; j++) {
+            leftNode->keys[x] = cursor->keys[j];
         }
-
-        // Transfer all pointers too.
-        Address nullAddress{nullptr, 0};
-        for (int i = leftNode->numKeys + 1, j = 0; j < cursor->numKeys + 1; j++)
-        {
-            leftNode->pointers[i] = cursor->pointers[j];
+        // Transfer all pointers also
+        Address nullAddress = Address(nullptr, 0);
+        for (int x = leftNode->numKeys + 1, j = 0; j < cursor->numKeys + 1; j++) {
+            leftNode->pointers[x] = cursor->pointers[j];
             cursor->pointers[j] = nullAddress;
         }
 
-        // Update variables, make left node last pointer point to the next leaf node pointed to by current.
+        // Update respective variables such as keys and pointers
+        // Make last pointer of left sibling node point to current which is the next node
         leftNode->numKeys += cursor->numKeys + 1;
         cursor->numKeys = 0;
 
-        // Save left node to disk.
-        index->saveToDisk(leftNode, nodeSize, parent->pointers[leftSibling]);
+        // Save left node to disk storage.
+        indexes->saveRecordToStorage(leftNode, nodeSize, parent->pointers[leftSibling]);
 
-        // Delete current node (cursor)
-        // We need to update the parent in order to fully remove the current node.
-        removeInternal(parent->keys[leftSibling], (Node *)parentDiskAddress, (Node *)cursorDiskAddress);
+        // Delete current node
+        // Recursive update until root node is found and all parent/internal nodes are balanced
+        updateInternal(parent->keys[leftSibling], (TreeNode *) parentStorageAddress, (TreeNode *) cursorDiskAddress);
     }
-        // If left sibling doesn't exist, try to merge with right sibling.
-    else if (rightSibling <= parent->numKeys)
-    {
+
+        // Right
+        // However, If left sibling doesn't exist,
+        // Merge with right sibling if it exists.
+    else if (rightSibling <= parent->numKeys) {
         // Load in right sibling from disk.
-        Node *rightNode = (Node *)index->loadFromDisk(parent->pointers[rightSibling], nodeSize);
+        TreeNode *rightNode = (TreeNode *) indexes->loadRecordFromStorage(parent->pointers[rightSibling], nodeSize);
 
         // Set upper bound of cursor to be lower bound of right sibling.
         cursor->keys[cursor->numKeys] = parent->keys[rightSibling - 1];
 
-        // Note we are moving right node's stuff into ours.
-        // Transfer all keys from right node into current.
-        // Note: Merging will always suceed due to ⌊(n)/2⌋ (left) + ⌊(n-1)/2⌋ (current).
-        for (int i = cursor->numKeys + 1, j = 0; j < rightNode->numKeys; j++)
-        {
-            cursor->keys[i] = rightNode->keys[j];
+        // Proceed with the transfer of all keys from right sibling node to current node
+        for (int x = cursor->numKeys + 1, j = 0; j < rightNode->numKeys; j++) {
+            cursor->keys[x] = rightNode->keys[j];
         }
 
         // Transfer all pointers from right node into current.
-        Address nullAddress = {nullptr, 0};
-        for (int i = cursor->numKeys + 1, j = 0; j < rightNode->numKeys + 1; j++)
-        {
-            cursor->pointers[i] = rightNode->pointers[j];
+        //Separately cause we have an extra ptr in  non leaf nodes
+        Address nullAddress = Address(nullptr, 0);
+        for (int x = cursor->numKeys + 1, j = 0; j < rightNode->numKeys + 1; j++) {
+            cursor->pointers[x] = rightNode->pointers[j];
             rightNode->pointers[j] = nullAddress;
         }
 
-        // Update variables
+        // Update respective variables such as keys and pointers
+        // Make last pointer of current node point to head pointer to left sibling node which is the next node
         cursor->numKeys += rightNode->numKeys + 1;
         rightNode->numKeys = 0;
 
-        // Save current node to disk.
-        Address cursorAddress{cursorDiskAddress, 0};
-        index->saveToDisk(cursor, nodeSize, cursorAddress);
+        // Save current node to disk storage
+        Address cursorAddress = Address(cursorDiskAddress, 0);
+        indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
 
-        // Delete right node.
-        // We need to update the parent in order to fully remove the right node.
+        // Proceed to remove right node.
+        // Need to update the parent in order to fully remove the right node.
         void *rightNodeAddress = parent->pointers[rightSibling].blockAddress;
-        removeInternal(parent->keys[rightSibling - 1], (Node *)parentDiskAddress, (Node *)rightNodeAddress);
-    }
-}
 
-
-
-void BPlusTree::removeLL(Address LLHeadAddress)
-{
-    // Load in first node from disk.
-    Node *head = (Node *)index->loadFromDisk(LLHeadAddress, nodeSize);
-
-    // Removing the current head. Simply deallocate the entire block since it is safe to do so for the linked list
-    // Keep going down the list until no more nodes to deallocate.
-
-    // Deallocate the current node.
-    index->deallocate(LLHeadAddress, nodeSize);
-
-    // End of linked list
-    if (head->pointers[head->numKeys].blockAddress == nullptr)
-    {
-        std::cout << "End of linked list";
-        return;
-    }
-
-    if (head->pointers[head->numKeys].blockAddress != nullptr)
-    {
-
-        removeLL(head->pointers[head->numKeys]);
+        //recursive call again to updateInternal to do the rest
+        updateInternal(parent->keys[rightSibling - 1], (TreeNode *) parentStorageAddress,
+                       (TreeNode *) rightNodeAddress);
     }
 }

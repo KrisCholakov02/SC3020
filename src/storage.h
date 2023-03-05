@@ -7,100 +7,94 @@
 
 using namespace std;
 
-class MemoryPool
-{
+// A class for creating, allocating and modifying the storage
+class Storage {
+private:
+    // Maximum storage size
+    size_t maxSize;
+    // The fixed block size
+    size_t blockSize;
+    // Current used storage size based on the number of records
+    size_t actualSize;
+    // Current used storage size based on the number of blocks
+    size_t currentSize;
+    // The used storage size of the current block
+    size_t currentBlockSize;
+
+    // The number of blocks allocated
+    int blocksAllocated;
+    // The number of blocks accessed
+    int blocksAccessed;
+
+    // Pointer to the storage
+    void *storage;
+    // Pointer to the current block
+    void *block;
 public:
-    // =============== Methods ================ //
+    // Constructor for the Storage class
+    Storage(size_t maxSize, size_t blockSize);
 
-    // Creates a new memory pool with the following parameters:
-    // maxPoolSize: Maximum size of the memory pool.
-    // blockSize: The fixed size of each block in the pool.
-    MemoryPool(std::size_t maxPoolSize, std::size_t blockSize);
-
-    // Allocate a new block from the memory pool. Returns false if error.
+    // Allocate a block from the storage
     bool allocateBlock();
 
-    // Allocates a new chunk to the memory pool. Creates a new block if chunk is unable to fit in current free block.
-    // Returns a struct with the block's address and the record's offset within the block.
-    Address allocate(std::size_t sizeRequired);
+    // Allocate record within the block
+    Address allocateRecord(size_t recordSize);
 
-    // Deallocates an existing record and block if block becomes empty. Returns false if error.
-    bool deallocate(Address address, std::size_t sizeToDelete);
+    // Deallocate a record from a block
+    bool deallocateRecord(Address recordAddress, size_t recordSize);
 
-    // Give a block address, offset and size, returns the data there.
-    void *loadFromDisk(Address address, std::size_t size);
+    // Load the record from the storage
+    void *loadRecordFromStorage(Address recordAddress, size_t recordSize);
 
-    // Save data to the disk given a main memory address.
-    Address saveToDisk(void *itemAddress, std::size_t size);
+    // Save a record to the storage
+    Address saveRecordToStorage(void *record, size_t recordSize);
 
-    // Update data in disk if I have already saved it before.
-    Address saveToDisk(void *itemAddress, std::size_t size, Address diskAddress);
+    // Overloading the saveRecordToStorage function
+    // Update an already existing record to the storage
+    Address saveRecordToStorage(void *record, size_t recordSize, Address recordAddress);
 
-    // Returns the maximum size of this memory pool.
-    std::size_t getMaxPoolSize() const
-    {
-        return maxPoolSize;
+    // Getter for the maximum size of the storage
+    size_t getMaxSize() const {
+        return maxSize;
     }
 
-    // Returns the size of a block in memory pool.
-    std::size_t getBlockSize() const
-    {
+    // Getter for the fixed size of the blocks in the storage
+    size_t getBlockSize() const {
         return blockSize;
-    };
-
-    // Returns the size used in the current block.
-    std::size_t getBlockSizeUsed() const
-    {
-        return blockSizeUsed;
-    };
-
-    // Returns current size used in memory pool (total blocks size).
-    std::size_t getSizeUsed() const
-    {
-        return sizeUsed;
     }
 
-    // Returns actual size of all records stored in memory pool.
-    std::size_t getActualSizeUsed() const
-    {
-        return actualSizeUsed;
+    // Getter for the actual of the storage (based on number of records)
+    size_t getActualSize() const {
+        return actualSize;
     }
 
-    // Returns number of currently allocated blocks.
-    int getAllocated() const
-    {
-        return allocated;
-    };
+    // Getter for the current size of the storage (based on number of block)
+    size_t getCurrentSize() const {
+        return currentSize;
+    }
 
-    int getBlocksAccessed() const
-    {
+    // Getter for the used storage size of the current block
+    size_t getCurrentBlockSize() const {
+        return currentBlockSize;
+    }
+
+    // Getter for the number of allocated blocks
+    int getBlocksAllocated() const {
+        return blocksAllocated;
+    }
+
+    // Getter for the number of accessed blocks
+    int getBlocksAccessed() const {
         return blocksAccessed;
     }
 
-    int resetBlocksAccessed()
-    {
-        int tempBlocksAccessed = blocksAccessed;
+    // Set the number of accessed blocks to 0
+    void resetBlocksAccessed() {
         blocksAccessed = 0;
-        return tempBlocksAccessed;
     }
 
-    // Destructor
-    ~MemoryPool();
-
-private:
-    // =============== Data ================ //
-
-    std::size_t maxPoolSize;    // Maximum size allowed for pool.
-    std::size_t blockSize;      // Size of each block in pool in bytes.
-    std::size_t sizeUsed;       // Current size used up for storage (total block size).
-    std::size_t actualSizeUsed; // Actual size used based on records stored in storage.
-    std::size_t blockSizeUsed;  // Size used up within the curent block we are pointing to.
-
-    int allocated;      // Number of currently allocated blocks.
-    int blocksAccessed; // Counts number of blocks accessed.
-
-    void *pool;  // Pointer to the memory pool.
-    void *block; // Current block pointer we are inserting to.
+    // Destructor for the Storage class
+    ~Storage();
 };
 
 #endif //SC3020_STORAGE_H

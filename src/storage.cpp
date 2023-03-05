@@ -2,140 +2,106 @@
 
 using namespace std;
 
-MemoryPool::MemoryPool(std::size_t maxPoolSize, std::size_t blockSize)
-{
-    this->maxPoolSize = maxPoolSize;
+Storage::Storage(size_t maxSize, size_t blockSize) : maxSize(maxSize), blockSize(blockSize) {
+    this->maxSize = maxSize;
     this->blockSize = blockSize;
-    this->sizeUsed = 0;
-    this->actualSizeUsed = 0;
-    this->allocated = 0;
+    this->actualSize = 0;
+    this->currentSize = 0;
+    this->blocksAllocated = 0;
 
-    // Create pool of blocks.
-    this->pool = operator new(maxPoolSize);
-    std::memset(pool, '\0', maxPoolSize); // Initialize pool all to null.
+    this->storage = operator new(maxSize);
+    memset(storage, '\0', maxSize);
     this->block = nullptr;
-    this->blockSizeUsed = 0;
-
+    this->currentBlockSize = 0;
     this->blocksAccessed = 0;
 }
 
-// Methods
 
-bool MemoryPool::allocateBlock()
-{
-    // Only allocate a new block if we don't exceed maxPoolSize.
-    if (sizeUsed + blockSize <= maxPoolSize)
-    {
-        // Update variables
-        sizeUsed += blockSize;
-        block = (char *)pool + allocated * blockSize; // Set current block pointer to new block.
-        blockSizeUsed = 0;                    // Reset offset to 0.
-        allocated += 1;
-        return true;
+bool Storage::allocateBlock() {
+    // In case that the storage is almost full and cannot accept any more new blocks
+    if (currentSize + blockSize > maxSize) {
+        cout << "The storage is almost full, no space for a new block." << endl;
+        return false;
     }
-    else
-    {
-        std::cout << "Error: No memory left to allocate new block (" << sizeUsed << "/" << maxPoolSize << " used)." << '\n';
+    // The storage has a space for at least one more block, so a new block is allocated
+    currentSize += blockSize;
+    block = (char *) storage + blocksAllocated * blockSize;
+    blocksAllocated += 1;
+    currentBlockSize = 0;
+    return true;
+}
+
+Address Storage::allocateRecord(size_t recordSize) {
+    // If the record recordSize is larger than the fixed recordSize of the block, throw an exception
+    if (recordSize > blockSize) {
+        cout << "The record recordSize is larger than the fixed block recordSize." << endl;
+        throw invalid_argument("The record's recordSize should be less than the block's recordSize.");
+    }
+    // If there are no blocks allocated, try to allocate a new one
+    if (blocksAllocated == 0 || (currentBlockSize + recordSize > blockSize)) {
+        // If a new block cannot be created because of storage not having enough space for it, throw an exception
+        if (!allocateBlock()) throw logic_error("A new block cannot be created.");
+    }
+
+    // If the current block has enough space for the record or a block is successfully created, allocate record to it
+    Address newRecordAddress = Address(block, currentSize);
+    currentBlockSize += recordSize;
+    currentSize += recordSize;
+    return newRecordAddress;
+}
+
+bool Storage::deallocateRecord(Address recordAddress, size_t recordSize) {
+    try {
+        // Deallocating the record from the block
+        void *toDelete = (char *) recordAddress.getBlockAddress() + recordAddress.getOffset();
+        memset(toDelete, '\0', recordSize);
+        // Decreasing the storage size with the size of the deleted record
+        actualSize -= recordSize;
+        // Creating an empty block to compare it with the current one later
+        unsigned char emptyBlock[blockSize];
+        memset(emptyBlock, '\0', blockSize);
+        // Comparing if the current block is empty
+        if (memcmp(emptyBlock, recordAddress.getBlockAddress(), blockSize) == 0) {
+            // Decreasing the used storage size and the number of allocated blocks if the block is empty
+            currentSize -= blockSize;
+            blocksAllocated--;
+        }
+        // If current block is not empty, we just proceed without decreasing the storage used, as the block stays
+        return true;
+    } catch (...) {
+        // Catch if an exception happens and return false
+        cout << "Cannot deallocate the record." << endl;
         return false;
     }
 }
 
-Address MemoryPool::allocate(std::size_t sizeRequired)
-{
-    // If record size exceeds block size, throw an error.
-    if (sizeRequired > blockSize)
-    {
-        std::cout << "Error: Size required larger than block size (" << sizeRequired << " vs " << blockSize << ")! Increase block size to store data." << '\n';
-        throw std::invalid_argument("Requested size too large!");
-    }
+void *Storage::loadRecordFromStorage(Address recordAddress, size_t recordSize) {
+    // Get a record from a block based on the block's address, offset and the record's size
+    void *address = operator new(recordSize);
+    memcpy(address, (char *) recordAddress.getBlockAddress() + recordAddress.getOffset(), recordSize);
+    // Increase the number of blocks that are accessed
+    blocksAccessed++;
+    // Return the address with the record that was copied
+    return address;
+}
 
-    // If no current block, or record can't fit into current block, make a new block.
-    if (allocated == 0 || (blockSizeUsed + sizeRequired > blockSize))
-    {
-        bool isSuccessful = allocateBlock();
-        if (!isSuccessful)
-        {
-            throw std::logic_error("Failed to allocate new block!");
-        }
-    }
+Address Storage::saveRecordToStorage(void *record, size_t recordSize) {
+    // Creating the address for the record to be stored and copying it there
+    Address address = allocateRecord(recordSize);
+    memcpy((char *) address.getBlockAddress() + address.getOffset(), record, recordSize);
+    // Increase the number of blocks that are accessed
+    blocksAccessed++;
+    // Return the address with the record that was copied
+    return address;
+}
 
-    // Update variables
-    short int offset = blockSizeUsed;
-
-    blockSizeUsed += sizeRequired;
-    actualSizeUsed += sizeRequired;
-
-    // Return the new memory space to put in the record.
-    Address recordAddress = {block, offset};
-
+Address Storage::saveRecordToStorage(void *record, size_t recordSize, Address recordAddress) {
+    // Calculating the address for the record to be stored and copying it there
+    memcpy((char *) recordAddress.getBlockAddress() + recordAddress.getOffset(), record, recordSize);
+    // Increase the number of blocks that are accessed
+    blocksAccessed++;
+    // Return the address with the record that was copied
     return recordAddress;
 }
 
-bool MemoryPool::deallocate(Address address, std::size_t sizeToDelete)
-{
-    try
-    {
-        // Remove record from block.
-        void *addressToDelete = (char *)address.blockAddress + address.offset;
-        std::memset(addressToDelete, '\0', sizeToDelete);
-
-        // Update actual size used.
-        actualSizeUsed -= sizeToDelete;
-
-        // If block is empty, just remove the size of the block (but don't deallocate block!).
-        // Create a new test block full of NULL to test against the actual block to see if it's empty.
-        unsigned char testBlock[blockSize];
-        memset(testBlock, '\0', blockSize);
-
-        // Block is empty, remove size of block.
-        if (memcmp(testBlock, address.blockAddress, blockSize) == 0)
-        {
-            sizeUsed -= blockSize;
-            allocated--;
-        }
-
-        return true;
-    }
-    catch (...)
-    {
-        std::cout << "Error: Could not remove record/block at given address (" << address.blockAddress << ") and offset (" << address.offset << ")." << '\n';
-        return false;
-    };
-}
-
-// Give a block address, offset and size, returns the data there.
-void *MemoryPool::loadFromDisk(Address address, std::size_t size)
-{
-    void *mainMemoryAddress = operator new(size);
-    std::memcpy(mainMemoryAddress, (char *)address.blockAddress + address.offset, size);
-
-    // Update blocks accessed
-    blocksAccessed++;
-
-    return mainMemoryAddress;
-}
-
-// Saves something into the disk. Returns disk address.
-Address MemoryPool::saveToDisk(void *itemAddress, std::size_t size)
-{
-    Address diskAddress = allocate(size);
-    std::memcpy((char *)diskAddress.blockAddress + diskAddress.offset, itemAddress, size);
-
-    // Update blocks accessed
-    blocksAccessed++;
-
-    return diskAddress;
-}
-
-// Update data in disk if I have already saved it before.
-Address MemoryPool::saveToDisk(void *itemAddress, std::size_t size, Address diskAddress)
-{
-    std::memcpy((char *)diskAddress.blockAddress + diskAddress.offset, itemAddress, size);
-
-    // Update blocks accessed
-    blocksAccessed++;
-
-    return diskAddress;
-}
-
-MemoryPool::~MemoryPool(){};
+Storage::~Storage() = default;;

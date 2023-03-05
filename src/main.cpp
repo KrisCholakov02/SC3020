@@ -30,7 +30,7 @@ void printTitle(int displaySize, string text) {
 // A function to show the current of the data loading dynamically in one line
 void displayProgress(int current, int total) {
     float percentage = static_cast<float>(current) / total * 100;
-    cout << "\r" << getw(reinterpret_cast<FILE *>(3)) << static_cast<int>(percentage) << "% [";
+    cout << "\r" << setw(3) << static_cast<int>(percentage) << "% [";
     int progressLength = static_cast<int>(percentage) / 2;
     for (int i = 0; i < 50; i++) {
         if (i < progressLength) {
@@ -61,11 +61,11 @@ int main() {
     int const INDEXES_SIZE = 350;
 
     // Create storages for the records and the indexes
-    MemoryPool records = MemoryPool(RECORDS_SIZE * pow(2, 20), BLOCK_SIZE);
-    MemoryPool indexes = MemoryPool(INDEXES_SIZE * pow(2, 20), BLOCK_SIZE);
+    Storage records = Storage(RECORDS_SIZE * pow(2, 20), BLOCK_SIZE);
+    Storage indexes = Storage(INDEXES_SIZE * pow(2, 20), BLOCK_SIZE);
 
     // Creating the B+ Tree
-    BPlusTree tree = BPlusTree(BLOCK_SIZE, &records, &indexes);
+    BPlusTree tree = BPlusTree(&indexes, &records, BLOCK_SIZE);
 
     records.resetBlocksAccessed();
     indexes.resetBlocksAccessed();
@@ -83,23 +83,34 @@ int main() {
 
         // Get the lines of the data.tsv file
         while (getline(file, recordLine)) {
-            Record temp;
-            stringstream linestream(recordLine);
+            // The fields of every record
+            char t[11];
+            float rating;
+            int numVotes;
+
+            // Converting the record line to a string stream, so the fields can be assigned
+            stringstream recordStream(recordLine);
+
+            // Assigning the tconst field
+            strcpy(t, recordLine.substr(0, recordLine.find("\t")).c_str());
+            // A check for the first line of the data.tsv, get only records without the header
+            if (strcmp(t, "tconst") == 0) {
+                continue;
+            }
             string data;
+            getline(recordStream, data, '\t');
 
-            //assigning temp.tconst value
-            strcpy(temp.tconst, recordLine.substr(0, recordLine.find("\t")).c_str());
-            std::getline(linestream, data, '\t');
+            //assigning rating and numVotes fields
+            recordStream >> rating >> numVotes;
 
-            //assigning temp.averageRating & temp.numVotes values
-            linestream >> temp.averageRating >> temp.numVotes;
-
+            // Constructing the record
+            Record current = Record(t, rating, numVotes);
 
             // Saving it to the storage and increasing the counter of saved records in the storage
-            Address currentRecordAddress = records.saveToDisk(&temp, sizeof(Record));
+            Address currentRecordAddress = records.saveRecordToStorage(&current, sizeof(Record));
 
             //
-            tree.insert(currentRecordAddress, int(temp.numVotes));
+            tree.insert(currentRecordAddress, int(current.getNumVotes()));
 
             numRecords += 1;
             displayProgress(numRecords, NUM_RECORDS);
@@ -115,20 +126,20 @@ int main() {
     cout << "Number of records: " << numRecords << endl;
     cout << "Size of a record: " << sizeof(Record) << " B" << endl;
     cout << "(Max whole) Records per block: " << (int) BLOCK_SIZE / sizeof(Record) << endl;
-    cout << "Number of blocks: " << records.getAllocated() << endl;
+    cout << "Number of blocks: " << records.getBlocksAllocated() << endl;
 
     // Experiment 2:
     printLine(DISPLAY_SIZE);
     printTitle(DISPLAY_SIZE, "Experiment 2");
     printLine(DISPLAY_SIZE);
-    cout << "Parameter n of the B+ tree: " << tree.getMaxKeys() << endl;
+    cout << "Parameter n of the B+ tree: " << tree.getMaxNumKeys() << endl;
     cout << "Number of nodes of the B+ tree: " << tree.getNumNodes() << endl;
-    cout << "Number of levels of the B+ tree: " << tree.getLevels() << endl;
+    cout << "Number of levels of the B+ tree: " << tree.getNumLevels() << endl;
     cout << "The keys in the root node: (";
-//    for (int i = 0; i < tree.getMaxKeys(); i++) {
-//        cout << tree.getRoot()->keys[i] << ", ";
-//    }
-//    cout << ")" << endl;
+    for (int i = 0; i < tree.getMaxNumKeys(); i++) {
+        cout << tree.getRoot()->getKeys()[i] << ", ";
+    }
+    cout << ")" << endl;
 
     indexes.resetBlocksAccessed();
     records.resetBlocksAccessed();

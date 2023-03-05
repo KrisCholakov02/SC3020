@@ -9,7 +9,7 @@ using namespace std;
 
 
 // Function to handle range queries from start key to end key
-void BPlusTree::search(float lowerBoundKey, float upperBoundKey)
+void BPlusTree::search(int lowerBoundKey, int upperBoundKey)
 {
     // Tree is empty.
     if (rootAddress == nullptr)

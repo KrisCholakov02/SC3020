@@ -5,22 +5,42 @@
 #include "storage_components.h"
 
 // The class for the node of the B+ Tree
-// A node in the B+ Tree.
-class Node
-{
+class TreeNode {
 private:
-    // Variables
-    Address *pointers;      // A pointer to an array of struct {void *blockAddress, short int offset} containing other nodes in disk.
-    float *keys;            // Pointer to an array of keys in this node.
-    int numKeys;            // Current number of keys in this node.
-    bool isLeaf;            // Whether this node is a leaf node.
-    friend class BPlusTree; // Let the BPlusTree class access this class' private variables.
-
+    // Whether the node is a leaf node
+    bool leafNode;
+    // The number of keys currently in the node
+    int numKeys;
+    // The array of the keys in the node
+    int *keys;
+    // The array of the pointers in the node
+    Address *pointers;
+    // Allowing BPlusTree access the attributes directly without setters and getters
+    friend class BPlusTree;
 public:
-    // Methods
+    // Constructor for the B+ tree node based on the maximum number of keys that a node can have
+    TreeNode(int maxNumKeys);
 
-    // Constructor
-    Node(int maxKeys); // Takes in max keys in a node.
+    // Getter of the pointers
+    Address *getPointers() const {
+        return pointers;
+    }
+
+    // Getter if the keys
+    int *getKeys() const {
+        return keys;
+    }
+
+    // Check if the node is a leaf node
+    bool isLeafNode() const {
+        return leafNode;
+    }
+
+    // Getter for the number of keys currently in the node
+    int getNumKeys() const {
+        return numKeys;
+    }
 };
+
 
 #endif //SC3020_TREE_NODE_H
