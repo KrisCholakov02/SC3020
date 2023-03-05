@@ -30,11 +30,17 @@ private:
     // A method to update or create a parent node of both nodes
     void insertInternal(float key, TreeNode *parentAddress, TreeNode *childAddress);
 
+    // Balanced B+ tree structure.
+    void updateInternal(float key, TreeNode *cursorDiskAddress, TreeNode *childDiskAddress);
+
     // Insert a record into a linked list of the records with the same key
     Address insertLL(Address LLHead, Address recordAddress, float key);
 
     // Remove the whole linked list
     void removeLL(Address headAddress);
+
+    // Finds the direct parent of a node in the B+ Tree.
+    TreeNode *findParent(TreeNode *, TreeNode *, float lowerBoundKey) ;
 public:
     // The constructor for the BPlusTree class
     BPlusTree(Storage *indexes, Storage *records, size_t nodeSize);
@@ -44,14 +50,6 @@ public:
 
     // A function to remove a record from the B+ Tree
     int remove(float key);
-
-    // Helper function for updating parent nodes while deleting a key so as to maintain
-    // Balanced B+ tree structure.
-    void updateInternal(float key, TreeNode *cursorDiskAddress, TreeNode *childDiskAddress);
-
-    // // Finds the direct parent of a node in the B+ Tree.
-    // // Takes in root and a node to find parent for, returns parent's disk address.
-    TreeNode *findParent(TreeNode *, TreeNode *, float lowerBoundKey) ;
 
     // A function to search for a record in the B+ Tree
     void rangeSearch(float start, float end);

@@ -2,6 +2,8 @@
 #include "tree_node.h"
 #include "storage_components.h"
 
+#include <iostream>
+
 using namespace std;
 
 void BPlusTree::insert(Address recordAddress, float key) {
