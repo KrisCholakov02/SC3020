@@ -21,11 +21,12 @@ void BPlusTree::insert(Address recordAddress, int key) {
         // Create the root node
         root = new TreeNode(maxNumKeys);
         root->keys[0] = key;
-        root->leafNode = false;
+        root->leafNode = true;
         root->numKeys = 1;
-        root->pointers[0] = recordAddress;
+        root->pointers[0] = LLNodeAddress;
         // Save the root node to the indexes storage
-        Address rootNodeAddress = indexes->saveRecordToStorage((void *) root, nodeSize);
+        rootAddress = indexes->saveRecordToStorage( root, nodeSize).blockAddress;
+
     }
         // Else if root exists already, traverse the nodes to find the proper place to insert the key.
     else {
@@ -287,6 +288,7 @@ void BPlusTree::insertInternal(int key, TreeNode *parentAddress, TreeNode *child
         while (key > keysT[i] && i < maxNumKeys) i++;
 
         // Swap all elements higher than the index
+        int j;
         for (int j = maxNumKeys; j > i; j--) {
             keysT[j] = keysT[j - 1];
         }
@@ -294,8 +296,7 @@ void BPlusTree::insertInternal(int key, TreeNode *parentAddress, TreeNode *child
         keysT[i] = key;
 
         // Shift the pointers too
-        int j;
-        for (j = maxNumKeys + 1; j > i + 1; j--) {
+        for (int j = maxNumKeys + 1; j > (i + 1); j--) {
             pointersT[j] = pointersT[j - 1];
         }
         // Insert the pointer at the correct position
