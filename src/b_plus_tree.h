@@ -60,9 +60,7 @@ public:
     }
 
     // Getter for the number of levels in the tree
-    int getNumLevels() const {
-        return numLevels;
-    }
+    int getNumLevels();
 
     // Getter for the number of nodes in the tree
     int getNumNodes() const {

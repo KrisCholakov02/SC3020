@@ -75,3 +75,27 @@ TreeNode *BPlusTree::findParent(TreeNode *currentAddress, TreeNode *childAddress
     }
     return nullptr;
 }
+
+int BPlusTree::getNumLevels() {
+    // If there is not a root, empty tree
+    if (rootAddress == nullptr) {
+        return 0;
+    }
+
+    // Load in the root node the indexes storage
+    Address rootAddressObject = Address(rootAddress, 0);
+    root = (TreeNode *)indexes->loadRecordFromStorage(rootAddressObject, nodeSize);
+    // A current node variable to travers through the levels
+    TreeNode *current = root;
+
+    int levels = 1;
+
+    // Until the current node reaches the leaf level
+    while (!current->leafNode) {
+        current = (TreeNode *)indexes->loadRecordFromStorage(current->pointers[0], nodeSize);
+        levels++;
+    }
+    levels++;
+
+    return levels;
+}
