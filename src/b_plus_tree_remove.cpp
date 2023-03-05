@@ -131,7 +131,7 @@ int BPlusTree::remove(float key) {
 
         // Before proceeding to delete the key, delete entire linked list stored under the key.
         // This is done so we don't lose head of linked list
-        removeLinkedList(cursor->pointers[position]);
+        removeLL(cursor->pointers[position]);
 
         // Proceed to delete the key.
         // Shift all remaining keys and pointers forward respectively to replace values of deleted record.
