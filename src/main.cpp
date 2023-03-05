@@ -108,6 +108,7 @@ int main() {
             numRecords += 1;
             displayProgress(numRecords, NUM_RECORDS);
         }
+        cout << endl;
         file.close();
     }
 
