@@ -54,6 +54,13 @@ public:
     // A function to search for a record in the B+ Tree
     void rangeSearch(float start, float end);
 
+    void displayRec(Address addr);
+
+    void displayTreeNode(TreeNode *node);
+
+    void displayBlk(void *block);
+
+
     // Getter for the root of the tree
     TreeNode *getRoot() const {
         return root;
