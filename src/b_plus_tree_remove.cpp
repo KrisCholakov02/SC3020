@@ -440,16 +440,16 @@ void BPlusTree::removeLL(Address headAddress) {
 // This function runs till all parent/internal nodes are updated to
 // Regain B+ Tree structure after removing a node in case 5, no sibling node found to borrow
 // Inputs storage address of parent, the child address to delete, and removes the child.
-void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNode *childStorageAddress) {
+void BPlusTree::updateInternal(int key, TreeNode *cursorDiskAddress, TreeNode *childDiskAddress) {
     // Load in the latest copy of parent which is pointed to by cursor and child from disk storage
-    Address cursorAddress = Address(cursorStorageAddress, 0);
+    Address cursorAddress = Address(cursorDiskAddress, 0);
     TreeNode *cursor = (TreeNode *) indexes->loadRecordFromStorage(cursorAddress, nodeSize);
 
     // Proceed to retrieve address of child node to be removed
-    Address childAddress = Address(childStorageAddress, 0);
+    Address childAddress = Address(childDiskAddress, 0);
 
     // Start by checking is cursor storage address is same as root address
-    if (cursorStorageAddress == rootAddress) {
+    if (cursorDiskAddress == rootAddress) {
         root = cursor;
     }
 
@@ -460,7 +460,7 @@ void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNo
         // We have to remove all keys and need to change the root node to its child.
         if (cursor->numKeys == 1) {
             // If the second (larger)pointer points to child, make it the new root.
-            if (cursor->pointers[1].blockAddress == childStorageAddress) {
+            if (cursor->pointers[1].blockAddress == childDiskAddress) {
                 // Remove the child completely
                 indexes->deallocateRecord(childAddress, nodeSize);
 
@@ -477,7 +477,7 @@ void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNo
             }
 
                 // Else if left pointer (smaller) in root points to the child, delete from there.
-            else if (cursor->pointers[0].blockAddress == childStorageAddress) {
+            else if (cursor->pointers[0].blockAddress == childDiskAddress) {
                 // Delete the child completely
                 indexes->deallocateRecord(childAddress, nodeSize);
 
@@ -521,7 +521,7 @@ void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNo
 
     //run for loop to find position of pointer to be removed
     for (position = 0; position < cursor->numKeys + 1; position++) {
-        if (cursor->pointers[position].blockAddress == childStorageAddress) {
+        if (cursor->pointers[position].blockAddress == childDiskAddress) {
             break;
         }
     }
@@ -543,13 +543,13 @@ void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNo
     // We attempt to borrow some key(s) from neighbouring nodes.
 
     // If this is the root node, just return, no option
-    if (cursorStorageAddress == rootAddress) {
+    if (cursorDiskAddress == rootAddress) {
         return;
     }
 
     // If not, we attempt to find the parent of the current parent to get our siblings.
     // Pass in lower bound key of our child to search for it.
-    TreeNode *parentStorageAddress = findParent((TreeNode *) rootAddress, cursorStorageAddress, cursor->keys[0]);
+    TreeNode *parentStorageAddress = findParent((TreeNode *) rootAddress, cursorDiskAddress, cursor->keys[0]);
     //maintain indexes for left and right sibling nodes
     int rightSibling, leftSibling;
 
@@ -560,7 +560,7 @@ void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNo
     // Find left and right sibling of the current node by iterating through pointer positions.
     //Do all the way from 0 to number of keys
     for (position = 0; position < parent->numKeys + 1; position++) {
-        if (parent->pointers[position].blockAddress == cursorStorageAddress) {
+        if (parent->pointers[position].blockAddress == cursorDiskAddress) {
             //Update the indexes of left and right siblings
             rightSibling = position + 1;
             leftSibling = position - 1;
@@ -618,7 +618,7 @@ void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNo
             indexes->saveRecordToStorage(leftNode, nodeSize, parent->pointers[leftSibling]);
 
             // Save current node to disk storage
-            Address cursorAddress = Address(cursorStorageAddress, 0);
+            Address cursorAddress = Address(cursorDiskAddress, 0);
             indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
             return;
         }
@@ -665,7 +665,7 @@ void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNo
             indexes->saveRecordToStorage(rightNode, nodeSize, parent->pointers[rightSibling]);
 
             // Save current node to disk storage.
-            Address cursorAddress = Address(cursorStorageAddress, 0);
+            Address cursorAddress = Address(cursorDiskAddress, 0);
             indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
             return;
         }
@@ -704,7 +704,7 @@ void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNo
 
         // Delete current node
         // Recursive update until root node is found and all parent/internal nodes are balanced
-        updateInternal(parent->keys[leftSibling], (TreeNode *) parentStorageAddress, (TreeNode *) cursorStorageAddress);
+        updateInternal(parent->keys[leftSibling], (TreeNode *) parentStorageAddress, (TreeNode *) cursorDiskAddress);
     }
 
         // Right
@@ -736,7 +736,7 @@ void BPlusTree::updateInternal(float key, TreeNode *cursorStorageAddress, TreeNo
         rightNode->numKeys = 0;
 
         // Save current node to disk storage
-        Address cursorAddress = Address(cursorStorageAddress, 0);
+        Address cursorAddress = Address(cursorDiskAddress, 0);
         indexes->saveRecordToStorage(cursor, nodeSize, cursorAddress);
 
         // Proceed to remove right node.

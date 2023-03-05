@@ -105,6 +105,11 @@ int main() {
 
             // Saving it to the storage and increasing the counter of saved records in the storage
             Address currentRecordAddress = records.saveRecordToStorage(&current, sizeof(Record));
+
+            //
+            tree.insert(currentRecordAddress, current.getNumVotes());
+            }
+
             numRecords += 1;
             displayProgress(numRecords, NUM_RECORDS);
         }

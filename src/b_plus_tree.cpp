@@ -26,7 +26,7 @@ BPlusTree::BPlusTree(Storage *indexes, Storage *records, size_t nodeSize) {
     this->records = records;
 }
 
-TreeNode *BPlusTree::findParent(TreeNode *currentAddress, TreeNode *childAddress, float key)
+TreeNode *BPlusTree::findParent(TreeNode *currentAddress, TreeNode *childAddress, int key)
 {
     // Load in the current node
     Address currentAddressObject = Address(currentAddress, 0);

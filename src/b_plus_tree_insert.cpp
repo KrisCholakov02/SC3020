@@ -6,7 +6,7 @@
 
 using namespace std;
 
-void BPlusTree::insert(Address recordAddress, float key) {
+void BPlusTree::insert(Address recordAddress, int key) {
     // If the tree does not have a root node
     if (rootAddress == nullptr) {
         // Create the root node
@@ -228,7 +228,7 @@ void BPlusTree::insert(Address recordAddress, float key) {
     numNodes = indexes->getBlocksAllocated();
 }
 
-void BPlusTree::insertInternal(float key, TreeNode *parentAddress, TreeNode *childAddress) {
+void BPlusTree::insertInternal(int key, TreeNode *parentAddress, TreeNode *childAddress) {
     // Get the current parent from the storage
     Address parentAddressObject = Address(parentAddress, 0);
     TreeNode *parent = (TreeNode *) indexes->loadRecordFromStorage(parentAddressObject, nodeSize);
@@ -365,7 +365,7 @@ void BPlusTree::insertInternal(float key, TreeNode *parentAddress, TreeNode *chi
     }
 }
 
-Address BPlusTree::insertLL(Address LLHead, Address recordAddress, float key) {
+Address BPlusTree::insertLL(Address LLHead, Address recordAddress, int key) {
     // Load the head of the linked list
     TreeNode *head = (TreeNode *) indexes->loadRecordFromStorage(LLHead, nodeSize);
 
