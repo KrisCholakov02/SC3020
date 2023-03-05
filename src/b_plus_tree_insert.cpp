@@ -109,7 +109,7 @@ void BPlusTree::insert(Address recordAddress, int key) {
                 current->pointers[current->numKeys] = next;
 
                 // Save the updated node at the indexes storage
-                Address currentAddressObject = Address(currentAddress, 0);
+                Address currentAddressObject{currentAddress, 0};
                 indexes->saveRecordToStorage(current, nodeSize, currentAddressObject);
             }
         }
@@ -192,12 +192,12 @@ void BPlusTree::insert(Address recordAddress, int key) {
             }
             // clean the trash pointer values from the current node
             for (int i = current->numKeys + 1; i < maxNumKeys + 1; i++) {
-                Address nullAddress = Address(nullptr, 0);
+                Address nullAddress{nullptr, 0};
                 current->pointers[i] = nullAddress;
             }
 
             // Save the current node to the indexes storage
-            Address currentAddressObject = Address(currentAddress, 0);
+            Address currentAddressObject{currentAddress, 0};
             indexes->saveRecordToStorage(current, nodeSize, currentAddressObject);
 
             // If the root is a leaf node
@@ -233,7 +233,7 @@ void BPlusTree::insert(Address recordAddress, int key) {
 
 void BPlusTree::insertInternal(int key, TreeNode *parentAddress, TreeNode *childAddress) {
     // Get the current parent from the storage
-    Address parentAddressObject = Address(parentAddress, 0);
+    Address parentAddressObject{parentAddress, 0};
     TreeNode *parent = (TreeNode *) indexes->loadRecordFromStorage(parentAddressObject, nodeSize);
 
     // If the current's address in the root address, then the root is the current node
@@ -241,7 +241,7 @@ void BPlusTree::insertInternal(int key, TreeNode *parentAddress, TreeNode *child
         root = parent;
     }
 
-    Address childAddressObject = Address(childAddress, 0);
+    Address childAddressObject{childAddress, 0};
     TreeNode *child = (TreeNode *) indexes->loadRecordFromStorage(childAddressObject, nodeSize);
 
     // If parent has space, we can add the child node as a pointer.
@@ -330,7 +330,7 @@ void BPlusTree::insertInternal(int key, TreeNode *parentAddress, TreeNode *child
             parent->keys[i] = int();
         }
         for (int i = parent->numKeys + 1; i < maxNumKeys + 1; i++) {
-            Address nullAddress = Address(nullptr, 0);
+            Address nullAddress{nullptr, 0};
             parent->pointers[i] = nullAddress;
         }
 
