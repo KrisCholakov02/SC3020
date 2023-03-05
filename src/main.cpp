@@ -107,7 +107,6 @@ int main() {
             tree.display(tree.getRoot(), tree.getNumLevels());
 
             numRecords += 1;
-            if (numRecords == 50) break;
             //displayProgress(numRecords, NUM_RECORDS);
         }
         cout << endl;
