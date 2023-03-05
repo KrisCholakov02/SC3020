@@ -21,10 +21,7 @@ void BPlusTree::rangeSearch(float start, float end) {
 
         // Print the keys and pointers of root node
         // Iterate from first key/pointer to the nu,ber of keys/pointers i.e. accessing all of them
-        for (int i = 0; i < root->getNumKeys(); i++) {
-            cout << root->getPointers()[i].blockAddress << "|";
-            cout << root->getKeys()[i] << "|";
-        }
+        displayTreeNode(root);
 
         // Traverse down the tree to the leaf node containing the starting point
 
@@ -46,11 +43,7 @@ void BPlusTree::rangeSearch(float start, float end) {
                     cout << "Node Accessed";
                     // Print the keys and block address of keys of root node
                     // Iterate from first key/pointer to the nu,ber of keys/pointers i.e. accessing all of them
-                    for (int i = 0; i < temp->getNumKeys(); i++) {
-                        cout << temp->getPointers()[i].blockAddress << "|";
-                        cout << temp->getKeys()[i] << "|";
-
-                    }
+                    displayTreeNode(temp);
                     break;
                 }
 
@@ -65,11 +58,7 @@ void BPlusTree::rangeSearch(float start, float end) {
                     // Prints a message indicating that the node was accessed
                     // Outputs the block addresses and keys of the node's children.
                     cout << "Node Accessed";
-                    for (int i = 0; i < temp->getNumKeys(); i++) {
-                        cout << temp->getPointers()[i].blockAddress << "|";
-                        cout << temp->getKeys()[i] << "|";
-
-                    }
+                    displayTreeNode(temp);
                     break;
                 }
             }
@@ -85,21 +74,20 @@ void BPlusTree::rangeSearch(float start, float end) {
         // Traverse through each leaf node in the tree
         while (finish == false) {
             // Loop through each key in the current leaf node
-            for (int k = 0; k < temp->getNumKeys(); k++) {
+            int k;
+            for (k = 0; k < temp->getNumKeys(); k++) {
                 // If the key value is within the search range, print the corresponding record
                 if (temp->getKeys()[k] >= start && temp->getKeys()[k] <= end) {
                     // Print message for node access
                     cout << "Node Accessed.";
                     // Loop through each key in the current leaf node
-                    for (int i = 0; i < temp->getNumKeys(); i++) {
-                        // Print the block address and key for each node entry
-                        cout << temp->getPointers()[i].blockAddress << "|";
-                        cout << temp->getKeys()[i] << "|";
-
-                    }
+                    displayTreeNode(temp);
 
                     cout << endl;
                     //code to display the record
+                    cout << "Record: " << temp->keys[k] << ">";
+                    displayRec(temp->pointers[k]);
+
                 }
                 // Check if the current key value in the leaf node temp is greater than the ending range value end
                 // If it is, it sets the finish boolean flag to true, indicating that the range search is complete
@@ -111,6 +99,8 @@ void BPlusTree::rangeSearch(float start, float end) {
                     finish = true;
                     break;
                 }
+            }
+
 
                 // Check if the current node temp has a right sibling
                 // And the last key of temp is not equal to end
@@ -120,11 +110,7 @@ void BPlusTree::rangeSearch(float start, float end) {
                     temp = (TreeNode *) indexes->loadRecordFromStorage(temp->getPointers()[k], nodeSize);
                     cout << "Node Accessed";
                     // Prints the addresses and keys of the nodes that were accessed in the process.
-                    for (int i = 0; i < temp->getNumKeys(); i++) {
-                        cout << temp->getPointers()[i].blockAddress << "|";
-                        cout << temp->getKeys()[i] << "|";
-
-                    }
+                    displayTreeNode(temp);
                 }
                 // Else we believe we have reached end of leaf node as either of the above conditions were false
                 // Sets finish to true to indicate that the range search is finished for the current leaf node.
@@ -135,7 +121,7 @@ void BPlusTree::rangeSearch(float start, float end) {
             }
         }
 
-    }
+
     //Else root address is a null pointer indicating that the B+ tree is empty, no node
     else {
         throw logic_error("empty B+ Tree");
