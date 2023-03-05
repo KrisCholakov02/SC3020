@@ -80,10 +80,6 @@ int main() {
 
         // Get the lines of the data.tsv file
         while (getline(file, recordLine)) {
-            // The fields of every record
-            /*char t[11];
-            float rating;
-            int numVotes;*/
             Record temporary;
 
             // Converting the record line to a string stream, so the fields can be assigned
@@ -102,13 +98,10 @@ int main() {
             //assigning rating and numVotes fields
             recordStream >> temporary.rating >> temporary.numVotes;
 
-            // Constructing the record
-            // Record current{t,rating, numVotes};
-
             // Saving it to the storage and increasing the counter of saved records in the storage
             Address currentRecordAddress = records.saveRecordToStorage(&temporary, sizeof(Record));
 
-            //
+            // Inserting the keys into the B+ tree
             tree.insert(currentRecordAddress, temporary.numVotes);
 
             numRecords += 1;
