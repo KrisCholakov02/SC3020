@@ -12,7 +12,7 @@ private:
     // The number of keys currently in the node
     int numKeys;
     // The array of the keys in the node
-    float *keys;
+    int *keys;
     // The array of the pointers in the node
     Address *pointers;
     // Allowing BPlusTree access the attributes directly without setters and getters
@@ -27,7 +27,7 @@ public:
     }
 
     // Getter if the keys
-    float *getKeys() const {
+    int *getKeys() const {
         return keys;
     }
 

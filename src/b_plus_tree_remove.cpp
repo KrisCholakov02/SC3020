@@ -11,7 +11,7 @@
 using namespace std;
 
 //Removing record
-int BPlusTree::remove(float key) {
+int BPlusTree::remove(int key) {
     // set number of nodes the current tree contains before removing a key
     numNodes = indexes->getBlocksAllocated();
 

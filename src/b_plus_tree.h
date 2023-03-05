@@ -49,7 +49,7 @@ public:
     void insert(Address recordAddress, int key);
 
     // A function to remove a record from the B+ Tree
-    int remove(float key);
+    int remove(int key);
 
     // A function to search for a record in the B+ Tree
     void rangeSearch(float start, float end);

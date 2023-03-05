@@ -108,7 +108,6 @@ int main() {
 
             //
             tree.insert(currentRecordAddress, current.getNumVotes());
-            }
 
             numRecords += 1;
             displayProgress(numRecords, NUM_RECORDS);

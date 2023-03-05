@@ -9,15 +9,6 @@ using namespace std;
 void BPlusTree::insert(Address recordAddress, int key) {
     // If the tree does not have a root node
     if (rootAddress == nullptr) {
-        // Create the root node
-        root = new TreeNode(maxNumKeys);
-        root->keys[0] = key;
-        root->leafNode = false;
-        root->numKeys = 1;
-        root->pointers[0] = recordAddress;
-        // Save the root node to the indexes storage
-        Address rootNodeAddress = indexes->saveRecordToStorage((void *) root, nodeSize);
-
         // Create a new linked list for this key value, in case of duplicated keys in the future
         TreeNode *LLNode = new TreeNode(maxNumKeys);
         LLNode->keys[0] = key;
@@ -26,6 +17,15 @@ void BPlusTree::insert(Address recordAddress, int key) {
         LLNode->pointers[0] = recordAddress;
         // Save the linked list to the indexes storage
         Address LLNodeAddress = indexes->saveRecordToStorage((void *) LLNode, nodeSize);
+
+        // Create the root node
+        root = new TreeNode(maxNumKeys);
+        root->keys[0] = key;
+        root->leafNode = false;
+        root->numKeys = 1;
+        root->pointers[0] = recordAddress;
+        // Save the root node to the indexes storage
+        Address rootNodeAddress = indexes->saveRecordToStorage((void *) root, nodeSize);
     }
         // Else if root exists already, traverse the nodes to find the proper place to insert the key.
     else {
@@ -115,7 +115,7 @@ void BPlusTree::insert(Address recordAddress, int key) {
             // Create a new leaf node that will take half of the content of the full one
             TreeNode *newNode = new TreeNode(maxNumKeys);
             // Save the current keys plus the new key to a temporary array
-            float keysT[maxNumKeys + 1];
+            int keysT[maxNumKeys + 1];
             // Save the current pointers plus the new one to a temporary array
             Address *pointersT = (Address *) malloc(sizeof(Address) * (maxNumKeys + 1));
             Address nextNode = current->pointers[current->numKeys];
@@ -185,7 +185,7 @@ void BPlusTree::insert(Address recordAddress, int key) {
 
             // clean the trash key values from the current node
             for (int i = current->numKeys; i < maxNumKeys; i++) {
-                current->keys[i] = float();
+                current->keys[i] = int();
             }
             // clean the trash pointer values from the current node
             for (int i = current->numKeys + 1; i < maxNumKeys + 1; i++) {
@@ -271,7 +271,7 @@ void BPlusTree::insertInternal(int key, TreeNode *parentAddress, TreeNode *child
         TreeNode *newNode = new TreeNode(maxNumKeys);
 
         // Again create temporary arrays for the keys and pointers, but now we have one more pointer to track the child
-        float keysT[maxNumKeys + 1];
+        int keysT[maxNumKeys + 1];
         Address *pointersT = (Address *) malloc(sizeof(Address) * (maxNumKeys + 2));
         // Copy the keys into the temporary array
         for (int i = 0; i < maxNumKeys; i++) {
@@ -324,7 +324,7 @@ void BPlusTree::insertInternal(int key, TreeNode *parentAddress, TreeNode *child
 
         // Clean trash values
         for (int i = parent->numKeys; i < maxNumKeys; i++) {
-            parent->keys[i] = float();
+            parent->keys[i] = int();
         }
         for (int i = parent->numKeys + 1; i < maxNumKeys + 1; i++) {
             Address nullAddress = Address(nullptr, 0);

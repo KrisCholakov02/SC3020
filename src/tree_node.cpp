@@ -4,9 +4,9 @@
 
 TreeNode::TreeNode(int maxNumKeys) {
     // Creating the keys' array
-    keys = new float[maxNumKeys];
+    keys = new int[maxNumKeys];
     // Creating the pointers' array
-    Address *pointers = (Address *) malloc(sizeof(Address) * (maxNumKeys + 1));
+    pointers = (Address *) malloc(sizeof(Address) * (maxNumKeys + 1));
 
     // Setting all pointers in the array to null pointers
     for (int i = 0; i < maxNumKeys + 1; i++) {
