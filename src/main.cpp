@@ -105,6 +105,10 @@ int main() {
             tree.insert(currentRecordAddress, temporary.numVotes);
 
             numRecords += 1;
+            if (numRecords == 1401) {
+                continue;
+            }
+            cout << numRecords << endl;
             displayProgress(numRecords, NUM_RECORDS);
         }
         cout << endl;
